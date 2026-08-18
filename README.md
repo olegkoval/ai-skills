@@ -1,18 +1,18 @@
 # ai-skills
 
-A collection of reusable [Claude Code](https://claude.com/claude-code) skills for spec-driven development (SDD) — turning a raw ticket into a verified spec, plan, and task list before any code is written, and folding what shipped back into a project's durable specs once it's live.
+A growing collection of reusable [Claude Code](https://claude.com/claude-code) skills, organized by specialization under `skills/<category>/`.
 
-## Why spec-driven development
+## Skills in this repo
 
-Ticket descriptions — vendor bulletins, customer-reported bugs, anything paraphrased secondhand — are frequently vague, wrong, or narrower/broader than they claim. Writing implementation code straight from a ticket means inheriting whatever assumptions the ticket got wrong.
+### Development
 
-SDD, as implemented here, treats a ticket as a *claim to verify*, not a fact to implement:
+Spec-driven development (SDD) skills: turning a raw ticket into a verified spec, plan, and task list before any code is written, and folding what shipped back into a project's durable specs once it's live.
+
+Ticket descriptions — vendor bulletins, customer-reported bugs, anything paraphrased secondhand — are frequently vague, wrong, or narrower/broader than they claim. Writing implementation code straight from a ticket means inheriting whatever assumptions the ticket got wrong. SDD, as implemented here, treats a ticket as a *claim to verify*, not a fact to implement:
 
 1. **Kick off** — investigate the ticket against the real codebase and tooling, then write `spec.md` (what's actually true), `plan.md` (how to fix it, checked against project rules), and `tasks.md` (a concrete checklist) — before writing implementation code.
 2. **Implement** — against the approved plan.
 3. **Close out** — once shipped, verify what actually merged (not just what the plan intended), and fold any durable lessons back into the project's standing specs so the next ticket starts from an accurate baseline.
-
-## Skills in this repo
 
 | Skill | Use it when |
 |---|---|
@@ -67,7 +67,7 @@ Fill in the placeholders for your project, then delete the `<!-- comment -->` bl
 | `branching-strategy.md` | Base branch, ticket-branch prefix, production branch, remote type |
 | `workflow.md` | The ticket tracker's status lifecycle and how it maps to branch/environment flow |
 
-## Quick start
+## Quick start: SDD ticket workflow
 
 1. Copy `sdd-ticket-start` and `sdd-ticket-close` into a project (see above), and optionally seed `.claude/specs/` from the templates.
 2. Hand Claude a ticket: *"Here's PROJ-123: <description>. Let's use SDD for this."*
