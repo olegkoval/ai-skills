@@ -89,6 +89,8 @@ Create `.claude/tickets/<TICKET-CODE>/plan.md`. It covers:
 
 Create `.claude/tickets/<TICKET-CODE>/tasks.md` — a checkbox list derived directly from `plan.md`'s steps, ordered, concrete enough that checking off the last box means the ticket is actually done (including the verification steps, not just the code change).
 
+Include a review task immediately before the commit task: an independent code review of the ticket's diff, with findings addressed before committing. Don't hardcode a specific reviewer tool — this project may or may not have one installed. Word the task as: use `/codex:review` (or an equivalent review plugin/command) if one is available in the session, otherwise dispatch a code-review subagent over the diff. Treat this as one review pass, not both every time — reserve running more than one independent reviewer for a change large or risky enough that a single pass isn't enough confidence.
+
 Include a commit task using this project's convention (see `branching-strategy.md` if present): the commit message MUST start with the ticket code as its first token, and MUST be a single short subject line with no body/explanation paragraphs, even when the change touched multiple concerns — e.g. `PROJ-123 upgrade payment SDK and fix cart total rounding`, not that same subject followed by paragraphs explaining what and why. That detail belongs in `spec.md`/`plan.md`, which already exist for exactly this purpose — don't duplicate it into the commit body. Not `Fix for PROJ-123: ...` either — the ticket code is always the first token, not buried mid-sentence.
 
 ```markdown
@@ -96,6 +98,7 @@ Include a commit task using this project's convention (see `branching-strategy.m
 
 - [ ] Step description, specific enough to act on
 - [ ] ...
+- [ ] Review the ticket's diff (`/codex:review` or equivalent if available, otherwise a review subagent) and address findings
 - [ ] Commit with message `PROJ-XXX <description>`
 - [ ] Update the ticket's tracker status per workflow.md's lifecycle, if defined
 ```
