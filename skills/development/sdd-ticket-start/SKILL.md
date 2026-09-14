@@ -28,6 +28,14 @@ If the project has a dependency manifest and lockfile (e.g. `composer.json`/`com
 
 Dependency directories (`vendor/`, `node_modules/`, `.venv/`, etc.) are normally gitignored, so their on-disk state is whatever was last installed in this folder — not necessarily what the currently checked-out branch's lockfile declares, especially in a folder reused across multiple tickets. If the check reports drift, install/sync properly (e.g. `composer install`, `npm ci`) rather than an "update" command, so any dependency work later in this ticket starts from a state that actually matches the lockfile — otherwise a later update can end up "correcting" drift you didn't cause instead of just applying your intended change, producing a much larger and scarier diff than expected.
 
+**Then check the platform/framework version specifically, not just "is there drift".** On a Composer project, compare the version actually installed against the version this branch's `composer.lock` pins — installed side from `vendor/composer/installed.json` (or `composer show <package>`), pinned side from `composer.lock` — for the framework/platform package (e.g. `magento/product-enterprise-edition`, `magento/framework`, `laravel/framework`, `symfony/framework-bundle`) and for any vendor package whose source this ticket will read. Same idea for `package.json`/`node_modules`, `Gemfile.lock`, `poetry.lock`. A multi-patch-release gap shows up in `install --dry-run` as just another line in a wall of up/downgrades and is very easy to skim past.
+
+**If the installed codebase doesn't match the lockfile, get it matching before going further.** Run the sync yourself (`composer install`, `npm ci`, …). If you don't have the rights to — the command is blocked, needs credentials you don't have, or touches an environment you can't reach — **ask the user to run it and wait for their explicit confirmation that the codebase now matches** before continuing. Don't proceed on the assumption it happened, and don't plan around the mismatch.
+
+Once the sync has run, **re-check `git status` before continuing.** On projects that commit framework files into the repo alongside Composer (Magento Cloud is the common case: `app/`, `lib/`, `pub/`, `setup/`, `dev/` are all tracked *and* delivered by a package), a version change can leave thousands of tracked files deleted in the working tree — including entry points like `pub/index.php` and `app/bootstrap.php`. If the sync left deletions of tracked files that nothing in the ticket touches, restore them from `HEAD` (e.g. `git restore .`, safe when nothing tracked is *modified*) and confirm the tree is clean again before writing any code. A commit made without noticing would record those deletions as part of the ticket.
+
+This matters because **a design derived from reading `vendor/` source is only valid for the version that source came from.** If the installed tree is ahead of or behind the branch's lockfile, the file paths, line numbers, method signatures and behaviour cited in `spec.md`/`plan.md` may not describe what the branch actually ships. When the versions differ and the plan leans on that source, either sync first, or fetch the pinned version into a scratch directory and **diff the exact files the design hooks into** — then record in `spec.md` which version the trace was verified against and what differed. Don't take the project's own docs as the answer either: `CLAUDE.md`/`README` version claims go stale. The lockfile is what the branch ships, the installed tree is what you're reading, and the docs are a third, independent claim — reconcile all three before trusting a citation.
+
 ## Step 2 — Create the ticket branch
 
 ```bash
@@ -65,7 +73,22 @@ This is the actual point of the skill. A ticket description is a claim, not a fa
 
 Take as long as this needs. A spec built on an unverified assumption is worse than no spec.
 
-## Step 5 — Write `spec.md`
+## Steps 5–7 — Planning stage: dispatch to an Opus subagent
+
+`spec.md`, `plan.md`, and `tasks.md` are this skill's actual planning output, and they benefit from the deepest reasoning available — dispatch them to a subagent pinned to Opus rather than writing them inline in whatever model is running this session.
+
+- Use `Agent` with `subagent_type: "general-purpose"` and `model: "opus"`. **Do not use `subagent_type: "fork"`** — a fork always runs on the parent session's model and ignores a `model` override, which defeats the point here.
+- A fresh (non-fork) agent starts with zero context, so the prompt must be fully self-contained. Include, inline in the prompt:
+  - The ticket code and the full ticket text/description as given (don't paraphrase it away).
+  - The confirmed base branch and branch prefix from Step 1, and the branch already created in Step 2.
+  - The complete findings from Step 4's investigation — every claim verified, with the evidence (file paths, line numbers, command output, version numbers) exactly as gathered. This is the substance the plan must be grounded in; a fresh agent re-investigating from scratch defeats the purpose and risks a different, unreconciled set of findings.
+  - The contents (or exact file paths to read, since the subagent shares this project's working directory and can read them itself) of `.claude/specs/constitution.md`, `tech-stack.md`, `data-model.md`, `branching-strategy.md`, `workflow.md` — whichever exist.
+  - The project's root `CLAUDE.md`/`AGENTS.md`.
+  - The exact structural requirements for each file (below, and in `references/templates.md`, which the subagent can also read directly).
+- Instruct the subagent to write the three files in order — `spec.md` first, then `plan.md` (informed by the finished `spec.md`), then `tasks.md` (derived from the finished `plan.md`) — to `.claude/tickets/<TICKET-CODE>/`, and to report back a short summary plus any open questions.
+- **After it returns, read the three files yourself** before moving to Step 8. Confirm they actually landed, are structurally complete, and don't contradict Step 4's findings — an agent's summary describes what it intended to write, not necessarily what it wrote.
+
+### `spec.md`
 
 Create `.claude/tickets/<TICKET-CODE>/spec.md`. See `references/templates.md` for the exact structure and a worked example. In short, it covers:
 - **Problem** — the ticket as given (quote it, don't summarize away details that might matter).
@@ -75,7 +98,7 @@ Create `.claude/tickets/<TICKET-CODE>/spec.md`. See `references/templates.md` fo
 - **Acceptance criteria** — concrete, checkable statements.
 - **Open questions** — anything genuinely blocking that needs the user's input (missing credentials, a decision only they can make, information you have no way to obtain). Don't list questions you could answer yourself by looking harder.
 
-## Step 6 — Write `plan.md`
+### `plan.md`
 
 Create `.claude/tickets/<TICKET-CODE>/plan.md`. It covers:
 - **Approach** — the technical shape of the change, in enough detail that someone else could implement it from this document alone.
@@ -85,7 +108,7 @@ Create `.claude/tickets/<TICKET-CODE>/plan.md`. It covers:
 - **Risks / rollback** — what could go wrong and how to undo it.
 - **Rollout** — how this ticket moves through the project's branch/environment flow (per `branching-strategy.md`/`workflow.md` if present), and anything specific to this change worth calling out there (e.g. a shared-test-environment interference risk for this particular kind of change).
 
-## Step 7 — Write `tasks.md`
+### `tasks.md`
 
 Create `.claude/tickets/<TICKET-CODE>/tasks.md` — a checkbox list derived directly from `plan.md`'s steps, ordered, concrete enough that checking off the last box means the ticket is actually done (including the verification steps, not just the code change).
 
