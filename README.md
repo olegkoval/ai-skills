@@ -27,6 +27,8 @@ A code review gate, switched on per project:
 |---|---|
 | [`skills/development/review-instructions-install`](skills/development/review-instructions-install) | You want a project to require a code review before commits. Writes a versioned block into that project's `CLAUDE.md` (creating the file if needed): run `/codex:review --background` after code changes, triage findings, re-review up to 5 rounds, and fall back to `/code-review low`/`medium` if Codex isn't available. Safe to re-run: it upgrades an older block and leaves a current one alone. |
 
+**Codex plugin: recommended, not required.** The installed instructions prefer the Codex plugin's `/codex:review` (from the `openai-codex` marketplace; run `/codex:setup` to check it's ready). Without it, reviews fall back to Claude Code's built-in `/code-review` at `low` or `medium` level, so the gate still works.
+
 The block's text lives in the skill's [`assets/review-instructions-block.md`](skills/development/review-instructions-install/assets/review-instructions-block.md). To change it, edit that file, bump the version in its start marker, and re-run the skill in each project.
 
 ## Installation
