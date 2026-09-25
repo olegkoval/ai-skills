@@ -21,6 +21,14 @@ Ticket descriptions — vendor bulletins, customer-reported bugs, anything parap
 
 Both skills are language- and stack-agnostic. Project-specific detail (base branch name, dependency tooling, ticket status names) is read from a project's own `.claude/specs/` files rather than assumed — see [Templates](#templates) below.
 
+A code review gate, switched on per project:
+
+| Skill | Use it when |
+|---|---|
+| [`skills/development/review-instructions-install`](skills/development/review-instructions-install) | You want a project to require a code review before commits. Writes a versioned block into that project's `CLAUDE.md` (creating the file if needed): run `/codex:review --background` after code changes, triage findings, re-review up to 5 rounds, and fall back to `/code-review low`/`medium` if Codex isn't available. Safe to re-run: it upgrades an older block and leaves a current one alone. |
+
+The block's text lives in the skill's [`assets/review-instructions-block.md`](skills/development/review-instructions-install/assets/review-instructions-block.md). To change it, edit that file, bump the version in its start marker, and re-run the skill in each project.
+
 ## Installation
 
 Clone this repo once, then link the skill(s) you want. Claude Code supports a skill folder under `~/.claude/skills/<name>/` (or a project's `.claude/skills/<name>/`) being a symlink to a directory elsewhere on disk — it follows the link and reads `SKILL.md` from the target. That means a symlinked skill stays current with a plain `git pull` in this repo, with no re-copying:
@@ -29,10 +37,12 @@ Clone this repo once, then link the skill(s) you want. Claude Code supports a sk
 # Personal skills (available in every project) — run from the cloned repo root
 ln -s "$(pwd)/skills/development/sdd-ticket-start" ~/.claude/skills/sdd-ticket-start
 ln -s "$(pwd)/skills/development/sdd-ticket-close" ~/.claude/skills/sdd-ticket-close
+ln -s "$(pwd)/skills/development/review-instructions-install" ~/.claude/skills/review-instructions-install
 
 # Or project-local skills (checked into that project's repo)
 ln -s "$(pwd)/skills/development/sdd-ticket-start" <your-project>/.claude/skills/sdd-ticket-start
 ln -s "$(pwd)/skills/development/sdd-ticket-close" <your-project>/.claude/skills/sdd-ticket-close
+ln -s "$(pwd)/skills/development/review-instructions-install" <your-project>/.claude/skills/review-instructions-install
 ```
 
 The category folder (`development/`) is only how this repo organizes skills on disk — the symlink's destination name is what Claude Code actually sees, so it's always flat regardless of source nesting. Adding a skill later is one more `ln -s` line; nothing activates automatically just because it exists in the repo.
@@ -44,6 +54,7 @@ Since a symlinked skill's instructions take effect the moment you `git pull` —
 ```bash
 cp -r skills/development/sdd-ticket-start ~/.claude/skills/
 cp -r skills/development/sdd-ticket-close ~/.claude/skills/
+cp -r skills/development/review-instructions-install ~/.claude/skills/
 ```
 
 Either way, Claude Code discovers skills automatically from either location — no further configuration needed.
