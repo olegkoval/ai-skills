@@ -25,3 +25,7 @@ When a skill is one half of a pair (e.g. `sdd-ticket-start` / `sdd-ticket-close`
 ## Article 6 — No fabricated context
 
 If a skill's instructions reference project context that may not exist in the consuming project (e.g. `.claude/specs/constitution.md`), the skill must degrade gracefully: proceed without it and say so plainly. Never invent rules or conventions that aren't actually there, in this repo or any project consuming it.
+
+## Article 7 — Frontmatter must parse as valid YAML
+
+Every `SKILL.md`'s frontmatter must parse with a strict YAML parser, with the full `description` intact. Check it before committing any skill change (e.g. Ruby `YAML.safe_load`, comparing the parsed description's length to the raw line). In an unquoted description, avoid `: ` (starts a new key) and ` #` (starts a comment). Reason: both happened here. `: ` made GitHub fail to render a skill; ` #` silently cut `sdd-ticket-start`'s description to 75 characters, so the text Claude uses to decide when to invoke it was mostly lost.

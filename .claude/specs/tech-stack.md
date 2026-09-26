@@ -12,8 +12,10 @@
 
 ## Key Dependencies
 
-None. Skills reference two Claude Code conventions they don't own but assume exist in a consuming environment:
+None to install. Skills reference Claude Code extensions they don't own but assume may exist in a consuming environment:
 - `superpowers:executing-plans` / `superpowers:using-git-worktrees` — referenced by `sdd-ticket-start`'s implementation-handoff section. Only relevant if the consuming project also has the `superpowers` plugin installed.
+- `/codex:review` (the `openai-codex` plugin) — preferred reviewer in `review-instructions-install`'s block. Optional.
+- `/code-review` (built into Claude Code) — the block's fallback reviewer when Codex isn't available.
 
 ## Tooling
 
