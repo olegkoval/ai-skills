@@ -1,7 +1,7 @@
 # Project Constitution
 
 <!--
-Consumed by: sdd-ticket-start (Step 6 checks every plan.md against every Article below and states
+Consumed by: sdd-ticket-start (Steps 6–8 check every plan.md against every Article below and states
 compliance explicitly) and sdd-ticket-close (Step 4 folds new non-negotiable rules or gotchas
 back in here once a ticket ships).
 

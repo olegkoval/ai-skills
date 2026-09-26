@@ -1,7 +1,7 @@
 # Workflow
 
 <!--
-Consumed by: sdd-ticket-start (Step 6 rollout section, and the tasks.md tracker-status-update task)
+Consumed by: sdd-ticket-start (plan.md rollout section in Steps 6–8, and the tasks.md tracker-status-update task)
 and sdd-ticket-close (context for whether a process lesson belongs here per Step 4).
 
 Document this project's ticket status lifecycle and how it maps to the branch/environment flow

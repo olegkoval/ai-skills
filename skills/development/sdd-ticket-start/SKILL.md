@@ -1,13 +1,13 @@
 ---
 name: sdd-ticket-start
-description: Use this skill whenever the user hands over a ticket (a code like PROJ-123, #456, or similar, plus a description) from any tracker — Jira, Linear, GitHub Issues, or otherwise — and wants to start working on it using spec-driven development (SDD). Trigger on phrases like "here's a new ticket", "I have a ticket, PROJ-123, description is...", "let's start on this ticket", "create a branch and spec for this", or a pasted ticket screenshot/description with a ticket code. Also trigger when the user says they want to use spec-driven development (SDD) for a task and gives a ticket identifier. This skill creates the feature branch, investigates the ticket's claims against the real codebase and tooling rather than trusting the ticket text at face value, and produces spec.md/plan.md/tasks.md under .claude/tickets/<TICKET>/ — all before any implementation code is written. Works with any language, stack, or tracker convention.
+description: Use this skill whenever the user hands over a ticket (a code like PROJ-123, a GitHub issue number, or similar, plus a description) from any tracker — Jira, Linear, GitHub Issues, or otherwise — and wants to start working on it using spec-driven development (SDD). Trigger on phrases like "here's a new ticket", "I have a ticket, PROJ-123, description is...", "let's start on this ticket", "create a branch and spec for this", or a pasted ticket screenshot/description with a ticket code. Also trigger when the user says they want to use spec-driven development (SDD) for a task and gives a ticket identifier. This skill creates the feature branch, investigates the ticket's claims against the real codebase and tooling rather than trusting the ticket text at face value, clarifies whatever is still open with the user, and produces spec.md/plan.md/tasks.md under .claude/tickets/<TICKET>/ — all before any implementation code is written. Works with any language, stack, or tracker convention.
 ---
 
 # SDD Ticket Start
 
 Turns a raw ticket (code + description) into a working branch and three grounded planning documents — spec, plan, tasks — before any implementation begins. The point of this skill is not paperwork for its own sake: it's that ticket descriptions (especially vendor bulletins, customer-reported bugs, or anything paraphrased secondhand) are frequently vague, wrong, or narrower/broader than they claim. A spec built by actually checking the codebase catches that before a single line of implementation code gets written on a wrong assumption.
 
-This skill is stack-agnostic. Where a step needs project-specific detail (base branch name, dependency tooling, ticket status names), it reads that from this project's `.claude/specs/` files rather than assuming any particular language or stack. See `templates/development/specs/` in the `ai-skills` repo for starter versions of those files if this project doesn't have them yet.
+This skill is stack-agnostic. Where a step needs project-specific detail (base branch name, dependency tooling, ticket status names), it reads that from this project's `.claude/specs/` files rather than assuming any particular language or stack. If this project doesn't have them yet, the `sdd-specs-init` skill creates them (its templates are in `skills/development/sdd-specs-init/assets/specs/` in the `ai-skills` repo).
 
 ## When you're given a ticket
 
@@ -53,14 +53,14 @@ This branch isn't meant to live forever: once the ticket ships, `sdd-ticket-clos
 
 Read whatever exists, and don't fail if something doesn't:
 
-- `.claude/specs/constitution.md` — the technical rules any plan must respect. If present, every rule in `plan.md` gets checked against it explicitly (see Step 6).
+- `.claude/specs/constitution.md` — the technical rules any plan must respect. If present, every rule in `plan.md` gets checked against it explicitly (see Steps 6–8).
 - `.claude/specs/tech-stack.md` — what's actually installed and at what version, so you're not guessing.
 - `.claude/specs/data-model.md` — custom entities/tables, so you know what a change might touch.
 - `.claude/specs/branching-strategy.md` — confirms the branch convention used in Step 2, and the base branch if it's not the default.
 - `.claude/specs/workflow.md` — the ticket's status lifecycle, useful context for the plan's rollout section.
 - The project's root `CLAUDE.md`/`AGENTS.md` and the user's global instructions file.
 
-**If `.claude/specs/` doesn't exist in this project:** don't stop, and don't invent constitution-style rules that aren't there. Proceed using whatever project-level instructions exist plus direct investigation of the codebase, and say plainly in `spec.md` that these weren't available — a gap noted honestly is fine; a fabricated one isn't.
+**If `.claude/specs/` doesn't exist in this project:** suggest running `sdd-specs-init` first to create it. If the user declines, don't stop, and don't invent constitution-style rules that aren't there. Proceed using whatever project-level instructions exist plus direct investigation of the codebase, and say plainly in `spec.md` that these weren't available — a gap noted honestly is fine; a fabricated one isn't.
 
 ## Step 4 — Investigate, don't paraphrase
 
@@ -73,7 +73,26 @@ This is the actual point of the skill. A ticket description is a claim, not a fa
 
 Take as long as this needs. A spec built on an unverified assumption is worse than no spec.
 
-## Steps 5–7 — Planning stage: dispatch to an Opus subagent
+## Step 5 — Clarify with the user
+
+Step 4 settles what the code says; it can't settle what the user wants. Resolve what the ticket and the investigation left open before any planning document is written. This runs here, in the main session, because the planning subagent in Steps 6–8 can't ask the user anything. If nothing is open, say so and move on.
+
+Ask only what you can't find out yourself: investigate first, and never ask what the code, docs, or git history already answer.
+1. **Confirm, don't ask, what you inferred.** Present derived facts for correction ("Step 4 found X; correct?").
+2. **Ask the real gaps in one grouped round.** Use `AskUserQuestion` (or the host's equivalent; up to 4 questions, 2–4 options each, "Other" is added automatically) for a small natural set of options, recommended option first. Use open conversation for anything that needs the user's own words.
+3. **Probe the reasons behind scope-setting answers.** When an answer sets scope or a rule, ask why; the underlying goal often changes the right answer.
+4. **Allow one follow-up round at most.** Record anything still unresolved, or answered "don't know", as an explicit open question in `spec.md`; never invent an answer.
+5. **Write the answers into the file that uses them**: pass them to the planning subagent so they land in `spec.md`.
+
+Topics, as needed:
+- **Outcome** — what "done" looks like from the user's side, where the ticket is vague.
+- **Scope** — confirm in/out, especially where Step 4 widened or narrowed the ticket's framing.
+- **Constraints** — deadlines, version/compatibility requirements, anything that must not change.
+- **Decisions** — choices between viable approaches that Step 4 surfaced and only the user can make.
+- **Risk and rollout** — acceptable risk, testing expectations, rollout/rollback needs.
+- **Contradictions** — anything Step 4 found that contradicts the ticket, and how to handle it.
+
+## Steps 6–8 — Planning stage: dispatch to an Opus subagent
 
 `spec.md`, `plan.md`, and `tasks.md` are this skill's actual planning output, and they benefit from the deepest reasoning available — dispatch them to a subagent pinned to Opus rather than writing them inline in whatever model is running this session.
 
@@ -82,17 +101,19 @@ Take as long as this needs. A spec built on an unverified assumption is worse th
   - The ticket code and the full ticket text/description as given (don't paraphrase it away).
   - The confirmed base branch and branch prefix from Step 1, and the branch already created in Step 2.
   - The complete findings from Step 4's investigation — every claim verified, with the evidence (file paths, line numbers, command output, version numbers) exactly as gathered. This is the substance the plan must be grounded in; a fresh agent re-investigating from scratch defeats the purpose and risks a different, unreconciled set of findings.
+  - The user's answers from Step 5, as given, plus anything left open there.
   - The contents (or exact file paths to read, since the subagent shares this project's working directory and can read them itself) of `.claude/specs/constitution.md`, `tech-stack.md`, `data-model.md`, `branching-strategy.md`, `workflow.md` — whichever exist.
   - The project's root `CLAUDE.md`/`AGENTS.md`.
   - The exact structural requirements for each file (below, and in `references/templates.md`, which the subagent can also read directly).
 - Instruct the subagent to write the three files in order — `spec.md` first, then `plan.md` (informed by the finished `spec.md`), then `tasks.md` (derived from the finished `plan.md`) — to `.claude/tickets/<TICKET-CODE>/`, and to report back a short summary plus any open questions.
-- **After it returns, read the three files yourself** before moving to Step 8. Confirm they actually landed, are structurally complete, and don't contradict Step 4's findings — an agent's summary describes what it intended to write, not necessarily what it wrote.
+- **After it returns, read the three files yourself** before moving to Step 9. Confirm they actually landed, are structurally complete, and don't contradict Step 4's findings or Step 5's answers — an agent's summary describes what it intended to write, not necessarily what it wrote.
 
 ### `spec.md`
 
 Create `.claude/tickets/<TICKET-CODE>/spec.md`. See `references/templates.md` for the exact structure and a worked example. In short, it covers:
 - **Problem** — the ticket as given (quote it, don't summarize away details that might matter).
 - **What was actually verified** — the investigation from Step 4, with evidence.
+- **Clarified with the user** — the Step 5 questions and answers, one line each; these feed Scope and Acceptance criteria.
 - **Why it matters** — especially if investigation changed the picture from what the ticket implied.
 - **Scope** — explicit in/out, and why anything plausible-sounding was excluded.
 - **Acceptance criteria** — concrete, checkable statements.
@@ -126,17 +147,20 @@ Include a commit task using this project's convention (see `branching-strategy.m
 - [ ] Update the ticket's tracker status per workflow.md's lifecycle, if defined
 ```
 
-## Step 8 — Stop and hand back
+## Step 9 — Stop and hand back
 
 This skill produces planning artifacts only. **Do not start writing implementation code after `tasks.md`.** End by telling the user:
 - The branch that was created.
 - A short summary of what Step 4's investigation actually found (especially anything that changed the scope from the ticket's original framing).
 - That `spec.md`/`plan.md`/`tasks.md` are ready for their review, and implementation starts once they've looked them over.
+- That the three docs are self-contained, so implementation can start in a fresh session. That keeps the context budget for the work and makes the specs, not chat memory, carry the intent.
 
 If something in Step 4 turned out to be more urgent or differently-scoped than the ticket implied, say so plainly in this final summary — don't bury a real finding (like a live security issue) at the bottom of a long document where it might get skimmed past.
 
 ## After Approval — Implementation Handoff
 
 This skill's job ends at `tasks.md`. Once the user has reviewed and approved it, implementation proceeds via `superpowers:executing-plans`, pointed at this ticket's `plan.md`/`tasks.md` — not its default `docs/superpowers/plans/` location.
+
+**Keep the docs in sync while implementing.** When implementation deviates from the plan — a review finding traces back to a gap in `plan.md`, the user changes a requirement, or a step turns out unworkable — update `spec.md`/`plan.md`/`tasks.md` in the same step as the code, not afterwards. Make those changes through the agent rather than by hand, so related docs don't drift apart. `sdd-ticket-close` still reconciles against the real diff at the end, but it shouldn't have to discover every deviation from scratch.
 
 **Decline the worktree it offers, by default.** `executing-plans` opens with `superpowers:using-git-worktrees`, which asks to create an isolated worktree. Say no and work in place on the ticket branch from Step 2 — it already isolates this work, and nesting a worktree on top forces a redundant dependency install (e.g. `composer install`/`npm ci`) for no added safety. Only accept the worktree offer for a ticket large or risky enough that branch isolation genuinely isn't sufficient.

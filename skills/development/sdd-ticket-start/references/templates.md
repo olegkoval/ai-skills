@@ -20,6 +20,11 @@ Skeletons for `spec.md`, `plan.md`, and `tasks.md`, followed by a trimmed real-w
 If a bulk/wildcard check and an individual check disagreed, say so — that mismatch is itself
 a finding worth recording, not just the corrected number.>
 
+## Clarified With the User
+
+<Question → answer, one line each, from Step 5. If Step 5 was skipped, write "Nothing needed —
+ticket and investigation were unambiguous.">
+
 ## Why This Matters / Changes the Picture
 
 <Only needed if investigation changed the ticket's apparent scope or severity. If the ticket
