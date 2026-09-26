@@ -78,6 +78,8 @@ cp skills/development/sdd-specs-init/assets/specs/*.md <your-project>/.claude/sp
 
 Fill in the placeholders for your project, then delete the `<!-- comment -->` block at the top of each file. None of the five files are required — a project missing `.claude/specs/` entirely still works with the ticket skills, just with less context to check plans and investigation against.
 
+**Track the specs in git.** They're the project's shared memory, for your teammates as much as for the agent, and they should be versioned with the code they describe. If your project ignores `.claude/`, change that rule to `.claude/*` plus `!.claude/specs/`; `sdd-specs-init` checks this and offers the fix.
+
 | File | What it captures |
 |---|---|
 | `constitution.md` | Non-negotiable technical rules a plan must satisfy (e.g. "never edit vendor code directly") |

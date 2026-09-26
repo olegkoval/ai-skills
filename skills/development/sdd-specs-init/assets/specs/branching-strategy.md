@@ -24,6 +24,12 @@ Fill in this project's actual convention. Delete this comment block once filled 
 - **How the integration branch reaches production:** <e.g. release branch cut weekly, merge on demand>
 - **Local branch cleanup:** <confirm: safe to delete a ticket's local branch once fully merged into the production branch, via `git branch -d` only — never `-D`.>
 
+## Specs Versioning
+
+- **`.claude/specs/` is tracked in git**, shared with the team and versioned with the code it describes. If `.claude/` is gitignored, the ignore rule must be `.claude/*` plus `!.claude/specs/`: git can't re-include a path whose parent directory is excluded, so `.claude/` plus `!.claude/specs/` doesn't work.
+- **Spec updates from `sdd-ticket-close`** are committed on the integration branch, since the ticket branch is already merged by then.
+- **Larger constitution revisions** go on their own branch, so it's clear which version of the rules produced which code.
+
 ## Environments (if relevant)
 
 <Any additional environment/branch mapping beyond integration → production — e.g. a shared test

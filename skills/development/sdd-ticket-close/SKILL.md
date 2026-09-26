@@ -59,6 +59,8 @@ If a ticket genuinely taught nothing durable beyond what's already in the specs,
 
 **Fix dangling references as you go.** If any spec or project instructions file pointed at something this ticket changed (a version number, a "not yet implemented" note, a file path that moved), update it in the same pass — don't leave a spec accurate as of the ticket's start but wrong as of its finish.
 
+The specs are tracked in git (see `branching-strategy.md`), so these updates are a normal change that needs committing. The ticket branch is already merged by now, so they belong on the integration branch, e.g. as `<TICKET-CODE> update specs`. The commit itself follows the project's usual commit rules. If `.claude/specs/` turns out to be gitignored in this project, say so in the report and suggest running `sdd-specs-init`, which fixes the ignore rule.
+
 ## Step 5 — Retire the ticket folder
 
 Once its content is folded in:
@@ -97,4 +99,4 @@ This is a **local-only** deletion. It never touches the remote copy of the branc
 
 ## Step 7 — Report back
 
-Summarize: which commits were verified on which branches, whether the real diff matched `plan.md` or diverged (and how), which spec files were updated and with what, confirmation the ticket folder was removed, and whether the local ticket branch was deleted (or why not, if it wasn't). If Step 2 stopped early, report exactly that instead — a ticket not actually merged to both branches yet is a normal, expected outcome to surface, not a failure.
+Summarize: which commits were verified on which branches, whether the real diff matched `plan.md` or diverged (and how), which spec files were updated and with what (and that they're ready to commit on the integration branch), confirmation the ticket folder was removed, and whether the local ticket branch was deleted (or why not, if it wasn't). If Step 2 stopped early, report exactly that instead — a ticket not actually merged to both branches yet is a normal, expected outcome to surface, not a failure.

@@ -56,4 +56,6 @@ Follow each template's structure:
 
 ## Step 6 — Report
 
-Per file: created, updated (what changed), or unchanged, plus any open `TBD`s. Don't commit: `.claude/` is often gitignored, and whether the specs go into git is the user's call.
+Per file: created, updated (what changed), or unchanged, plus any open `TBD`s.
+
+Specs are meant to be tracked in git, so the team shares them and they're versioned with the code. Check with `git check-ignore -v .claude/specs/constitution.md`. If they're ignored, show the user the matching `.gitignore` rule and the change that un-ignores them (e.g. `.claude/` becomes `.claude/*` plus `!.claude/specs/`, which keeps the rest of `.claude/` ignored), and apply it once they agree. Then tell the user the specs are ready to commit; the commit itself follows the project's usual commit rules.
