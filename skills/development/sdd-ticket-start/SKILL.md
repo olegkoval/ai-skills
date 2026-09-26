@@ -58,6 +58,7 @@ Read whatever exists, and don't fail if something doesn't:
 - `.claude/specs/data-model.md` — custom entities/tables, so you know what a change might touch.
 - `.claude/specs/branching-strategy.md` — confirms the branch convention used in Step 2, and the base branch if it's not the default.
 - `.claude/specs/workflow.md` — the ticket's status lifecycle, useful context for the plan's rollout section.
+- `.claude/specs/mission.md` (optional) — the project's purpose, audience and scope, used in Step 5 to judge whether the ticket's scope fits the project.
 - The project's root `CLAUDE.md`/`AGENTS.md` and the user's global instructions file.
 
 **If `.claude/specs/` doesn't exist in this project:** suggest running `sdd-specs-init` first to create it. If the user declines, don't stop, and don't invent constitution-style rules that aren't there. Proceed using whatever project-level instructions exist plus direct investigation of the codebase, and say plainly in `spec.md` that these weren't available — a gap noted honestly is fine; a fabricated one isn't.
@@ -86,7 +87,7 @@ Ask only what you can't find out yourself: investigate first, and never ask what
 
 Topics, as needed:
 - **Outcome** — what "done" looks like from the user's side, where the ticket is vague.
-- **Scope** — confirm in/out, especially where Step 4 widened or narrowed the ticket's framing.
+- **Scope** — confirm in/out, especially where Step 4 widened or narrowed the ticket's framing, or where the ticket seems to fall outside `mission.md`'s scope.
 - **Constraints** — deadlines, version/compatibility requirements, anything that must not change.
 - **Decisions** — choices between viable approaches that Step 4 surfaced and only the user can make.
 - **Risk and rollout** — acceptable risk, testing expectations, rollout/rollback needs.

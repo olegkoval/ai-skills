@@ -1,6 +1,6 @@
 ---
 name: sdd-specs-init
-description: Creates or updates a project's spec-driven development (SDD) specs under .claude/specs/ (constitution.md, tech-stack.md, data-model.md, branching-strategy.md, workflow.md) — drafting each file from what the repo actually shows (manifests, lockfiles, git branches, schema files, existing CLAUDE.md/AGENTS.md/README rules), then asking the user only what code can't reveal, such as the team's non-negotiable rules, ticket statuses, and merge policy. Use this skill whenever the user wants to set up, create, init, bootstrap, fill in, or update the project specs or a project constitution — e.g. "create a constitution for this project", "set up .claude/specs", "we don't have specs yet", "update the tech stack spec", "fill in the SDD templates" — and suggest it when starting SDD (sdd-ticket-start) in a project with no .claude/specs/. Safe to re-run — existing files are updated in place, never overwritten wholesale. Works with any language, stack, or tracker.
+description: Creates or updates a project's spec-driven development (SDD) specs under .claude/specs/ (constitution.md, tech-stack.md, data-model.md, branching-strategy.md, workflow.md, plus an optional mission.md) — drafting each file from what the repo actually shows (manifests, lockfiles, git branches, schema files, existing CLAUDE.md/AGENTS.md/README rules), then asking the user only what code can't reveal, such as the team's non-negotiable rules, ticket statuses, and merge policy. Use this skill whenever the user wants to set up, create, init, bootstrap, fill in, or update the project specs or a project constitution — e.g. "create a constitution for this project", "set up .claude/specs", "we don't have specs yet", "update the tech stack spec", "fill in the SDD templates" — and suggest it when starting SDD (sdd-ticket-start) in a project with no .claude/specs/. Safe to re-run — existing files are updated in place, never overwritten wholesale. Works with any language, stack, or tracker.
 ---
 
 # SDD Specs Init
@@ -13,6 +13,8 @@ The templates live in [`assets/specs/`](assets/specs/). Each one opens with a `<
 
 The target is `.claude/specs/` in the session's current working directory. For each of the five files, note whether it's **missing** (create it from the template) or **exists** (update mode, Step 5). If the user named specific files ("just the constitution"), limit the run to those.
 
+`mission.md` is a sixth, optional file: the project's purpose, audience and scope. If it's missing, ask once in Step 3 whether to create it (recommended when the project's purpose or audience isn't obvious from its README). If the user declines, skip it and don't ask again on later runs unless they bring it up.
+
 ## Step 2 — Derive (read-only)
 
 Draft as much as the repo supports, citing where each fact came from:
@@ -24,6 +26,7 @@ Draft as much as the repo supports, citing where each fact came from:
 | `data-model.md` | Custom entities only, from schema/migration/model files; summarize rather than dump columns | Known incomplete state (mid-migration, deferred work) |
 | `constitution.md` | Candidate rules already stated in `CLAUDE.md`/`AGENTS.md`/`README`, and standards enforced by linter configs, each citing its source | The team's non-negotiable rules; keep or drop each candidate |
 | `workflow.md` | Rarely anything; maybe a PR template or CI deploy trigger | Ticket statuses, what triggers each, and how they map to branches/environments |
+| `mission.md` (optional) | A starting draft of the purpose from the README intro or the manifest's `description` | Audience, scope in/out, what success looks like, business constraints |
 
 If the folder isn't a git repo, skip the git commands and ask the branching questions directly. On a new, near-empty project (greenfield) there's little or nothing to derive: say so, and run Step 3 as an interview covering all five files instead. The protocol still applies, so recommend a default for each choice. If versions can't be verified (no lockfile, dependencies not installed), record the manifest's constraints and say plainly that they're unverified.
 

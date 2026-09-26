@@ -54,6 +54,7 @@ Route facts to the file that already owns that kind of content:
 - **`tech-stack.md`** — a dependency version change, a new package, a tool added/removed. If this ticket changed a version this file documents, update it — don't leave it stale.
 - **`data-model.md`** — a new table/entity, a new attribute, a changed relationship, a resolved "known incomplete state" note (update or remove it if this ticket finished that work).
 - **`branching-strategy.md` / `workflow.md`** — only if the ticket taught something about the process itself (rare — most tickets are pure implementation).
+- **`mission.md`** (optional, if the project has one) — only if the ticket changed what the project is for, who it serves, or its scope (rarer still).
 
 If a ticket genuinely taught nothing durable beyond what's already in the specs, say so plainly rather than padding an Article with restated or trivial content.
 

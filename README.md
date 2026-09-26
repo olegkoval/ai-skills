@@ -87,6 +87,7 @@ Fill in the placeholders for your project, then delete the `<!-- comment -->` bl
 | `data-model.md` | Custom entities/tables and their relationships |
 | `branching-strategy.md` | Base branch, ticket-branch prefix, production branch, remote type |
 | `workflow.md` | The ticket tracker's status lifecycle and how it maps to branch/environment flow |
+| `mission.md` (optional) | Why the project exists: purpose, audience, scope, what success looks like, business constraints |
 
 ## Quick start: SDD ticket workflow
 
