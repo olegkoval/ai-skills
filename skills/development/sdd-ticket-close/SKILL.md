@@ -34,18 +34,38 @@ git merge-base --is-ancestor <sha> <production-branch> && echo "in production br
 
 If no commits are found, or a commit isn't an ancestor of both branches, **stop and tell the user** what's missing rather than proceeding — e.g. "found in the integration branch but not production yet" is a real, useful thing to report back, not a reason to guess. Don't require being currently checked out on either branch; these checks work from wherever the working tree currently is.
 
-## Step 3 — Re-diff the actual merged changes
+## Step 3 — Collect the actual merged changes
 
 ```bash
 git show --stat <sha1> <sha2> ...
 git diff <first-parent-before-ticket-work>..<last-ticket-commit> -- <relevant paths>
 ```
 
+Record the verified commit SHAs, the real file list, and the exact diff range. This is evidence gathering, so it stays in the main session; Step 4 reasons over it.
+
+## Step 4 — Reconcile and update specs: dispatch to an Opus subagent
+
+Deciding how the real diff differs from the plan, and which facts are durable enough for the specs, is this skill's judgment-heavy step. Dispatch it to a subagent pinned to Opus (the Opus 5.5 reconciliation role):
+
+- Use `Agent` with `subagent_type: "general-purpose"` and `model: "opus"` (or the host's equivalent). Don't use `subagent_type: "fork"`, which ignores the `model` override.
+- A fresh agent starts with no context, so make the prompt self-contained:
+  - The ticket code.
+  - The verified commits from Step 2, and which branches each is an ancestor of.
+  - The file list and the exact diff range from Step 3. The subagent shares the working directory, so it can re-run the `git diff` itself instead of receiving it pasted.
+  - The paths to `.claude/tickets/<TICKET-CODE>/` and to `.claude/specs/`.
+  - The instructions in the two subsections below.
+- Scope it to editing spec files only: no deleting the ticket folder, no branch operations, no commits.
+- Ask it to report whether the diff matched the plan or diverged (and how), and what it changed in each spec file and why. If nothing was durable, it should say so.
+
+**After it returns, check the edits yourself** with `git diff -- .claude/specs/`. Confirm each change traces to the real diff, not to something only `plan.md` claimed, and fix or revert any that don't. The agent's summary says what it intended to change, not necessarily what it changed.
+
+### Reconcile the plan against the real diff
+
 Compare the real file list and the real diff content against what `plan.md` described. Two outcomes:
 - **Matches:** proceed using `plan.md`/`spec.md`'s own descriptions as the basis for what to fold into specs — they're already accurate.
 - **Diverges** (extra files touched, a described change that didn't ship, an unplanned fix bundled in): the **real diff is the source of truth**, not the plan. Note the divergence plainly when updating specs (e.g. "plan.md described X; the merged code actually did Y — specs updated to reflect Y"). This matters because a future session reading the specs needs them to describe the codebase as it is, not as a plan once imagined it.
 
-## Step 4 — Extract what's durable and update specs
+### Extract what's durable and update specs
 
 Not everything in a ticket's docs belongs in the specs. Apply the same filter used when this project's specs were first built: fold in facts that are **architecturally durable** — a rule future work needs to respect, a gotcha that would bite someone again, a new entity/table/attribute, a changed dependency, a process lesson. Leave out **one-off debugging narrative** specific to this ticket's implementation (the back-and-forth of getting to the fix, a symptom that won't recur in that exact form) — that's what the commit history is for, not the specs.
 

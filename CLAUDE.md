@@ -25,6 +25,15 @@ Each skill is `skills/<category>/<name>/SKILL.md` with YAML frontmatter (`name`,
 
 Both skills read project-specific detail (base branch name, dependency-manager tooling, ticket status names) from the *consuming* project's own `.claude/specs/` files at run time — nothing about a specific language, framework, or vendor is hardcoded into a skill. This was a deliberate generalization from earlier Magento/Composer-specific originals; when editing either skill, avoid reintroducing stack-specific assumptions into the shared instructions (illustrative examples in `references/templates.md` are fine — logic in `SKILL.md` is not).
 
+## Model roles in skills
+
+Pin a model only where a skill actually dispatches an agent, and document the role next to that dispatch, not in a policy section per skill:
+- **Opus** (`model: "opus"`) for synthesis and judgment: planning, reconciling conflicting evidence, deciding what's durable, final review. Currently: `sdd-ticket-start`'s planning subagent and fallback review subagent, and `sdd-ticket-close`'s reconciliation subagent.
+- **Sonnet** (`model: "sonnet"`) for parallel evidence collection and implementation workers.
+- **No `model`** (inherit) for everything else, including the main-session steps and deterministic skills like `review-instructions-install`.
+
+`opus` and `sonnet` are Claude Code's aliases for the latest model in each family, so skills never name a version. A pinned model needs a fresh (non-fork) agent, because a fork ignores the `model` override. External skills and plugins (`superpowers:executing-plans`, `/codex:review`, `/code-review`) choose their own models; skills can only recommend a session model for them, not set one.
+
 ## Installation model
 
 There's no package manager or plugin manifest yet. The documented, primary installation method is a per-skill symlink: `~/.claude/skills/<name>` (or a project's `.claude/skills/<name>`) can be a symlink to `skills/<category>/<name>/` in a cloned copy of this repo — Claude Code follows it and reads `SKILL.md` from the target, so `git pull` updates the skill live with no re-copy step (see the official docs on [symlinked skill entries](https://code.claude.com/docs/en/skills.md#where-skills-live)). Copying (`cp -r`) is documented as a fallback for a frozen snapshot instead of live updates. Either way the destination is flat, with the category segment dropped — see README.md for the exact commands.

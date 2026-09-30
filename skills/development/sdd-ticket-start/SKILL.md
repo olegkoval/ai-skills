@@ -74,6 +74,8 @@ This is the actual point of the skill. A ticket description is a claim, not a fa
 
 Take as long as this needs. A spec built on an unverified assumption is worse than no spec.
 
+If the investigation needs many independent searches (e.g. checking a dozen packages or tracing every call site), you may fan them out to parallel fresh subagents with `model: "sonnet"`, not forks, which ignore the model (the Sonnet evidence-collector role). They collect facts; the judgment stays here. Spot-check the claims the plan will lean on before relying on them.
+
 ## Step 5 — Clarify with the user
 
 Step 4 settles what the code says; it can't settle what the user wants. Resolve what the ticket and the investigation left open before any planning document is written. This runs here, in the main session, because the planning subagent in Steps 6–8 can't ask the user anything. If nothing is open, say so and move on.
@@ -95,9 +97,9 @@ Topics, as needed:
 
 ## Steps 6–8 — Planning stage: dispatch to an Opus subagent
 
-`spec.md`, `plan.md`, and `tasks.md` are this skill's actual planning output, and they benefit from the deepest reasoning available — dispatch them to a subagent pinned to Opus rather than writing them inline in whatever model is running this session.
+`spec.md`, `plan.md`, and `tasks.md` are this skill's actual planning output, and they benefit from the deepest reasoning available — dispatch them to a subagent pinned to Opus (the Opus 5.5 planning role) rather than writing them inline in whatever model is running this session.
 
-- Use `Agent` with `subagent_type: "general-purpose"` and `model: "opus"`. **Do not use `subagent_type: "fork"`** — a fork always runs on the parent session's model and ignores a `model` override, which defeats the point here.
+- Use `Agent` with `subagent_type: "general-purpose"` and `model: "opus"` (or the host's equivalent). `opus` is Claude Code's alias for the latest Opus, so it doesn't need editing when the version changes. **Do not use `subagent_type: "fork"`** — a fork always runs on the parent session's model and ignores a `model` override, which defeats the point here.
 - A fresh (non-fork) agent starts with zero context, so the prompt must be fully self-contained. Include, inline in the prompt:
   - The ticket code and the full ticket text/description as given (don't paraphrase it away).
   - The confirmed base branch and branch prefix from Step 1, and the branch already created in Step 2.
@@ -134,7 +136,7 @@ Create `.claude/tickets/<TICKET-CODE>/plan.md`. It covers:
 
 Create `.claude/tickets/<TICKET-CODE>/tasks.md` — a checkbox list derived directly from `plan.md`'s steps, ordered, concrete enough that checking off the last box means the ticket is actually done (including the verification steps, not just the code change).
 
-Include a review task immediately before the commit task: an independent code review of the ticket's diff, with findings addressed before committing. Don't hardcode a specific reviewer tool — this project may or may not have one installed. Word the task as: use `/codex:review` (or an equivalent review plugin/command) if one is available in the session, otherwise dispatch a code-review subagent over the diff. Treat this as one review pass, not both every time — reserve running more than one independent reviewer for a change large or risky enough that a single pass isn't enough confidence.
+Include a review task immediately before the commit task: an independent code review of the ticket's diff, with findings addressed before committing. Don't hardcode a specific reviewer tool — this project may or may not have one installed. Word the task as: if the project's `CLAUDE.md` defines a review gate, follow it; otherwise use `/codex:review` (or an equivalent review plugin/command) if one is available in the session, otherwise dispatch a `model: "opus"` code-review subagent over the diff (the Opus final-review role). Treat this as one review pass, not both every time — reserve running more than one independent reviewer for a change large or risky enough that a single pass isn't enough confidence.
 
 Include a commit task using this project's convention (see `branching-strategy.md` if present): the commit message MUST start with the ticket code as its first token, and MUST be a single short subject line with no body/explanation paragraphs, even when the change touched multiple concerns — e.g. `PROJ-123 upgrade payment SDK and fix cart total rounding`, not that same subject followed by paragraphs explaining what and why. That detail belongs in `spec.md`/`plan.md`, which already exist for exactly this purpose — don't duplicate it into the commit body. Not `Fix for PROJ-123: ...` either — the ticket code is always the first token, not buried mid-sentence.
 
@@ -143,7 +145,7 @@ Include a commit task using this project's convention (see `branching-strategy.m
 
 - [ ] Step description, specific enough to act on
 - [ ] ...
-- [ ] Review the ticket's diff (`/codex:review` or equivalent if available, otherwise a review subagent) and address findings
+- [ ] Review the ticket's diff (the project's review gate if defined; else `/codex:review` or equivalent; else an Opus review subagent) and address findings
 - [ ] Commit with message `PROJ-XXX <description>`
 - [ ] Update the ticket's tracker status per workflow.md's lifecycle, if defined
 ```
@@ -154,7 +156,7 @@ This skill produces planning artifacts only. **Do not start writing implementati
 - The branch that was created.
 - A short summary of what Step 4's investigation actually found (especially anything that changed the scope from the ticket's original framing).
 - That `spec.md`/`plan.md`/`tasks.md` are ready for their review, and implementation starts once they've looked them over.
-- That the three docs are self-contained, so implementation can start in a fresh session. That keeps the context budget for the work and makes the specs, not chat memory, carry the intent.
+- That the three docs are self-contained, so implementation can start in a fresh session. That keeps the context budget for the work and makes the specs, not chat memory, carry the intent. Recommend running that session on Sonnet (e.g. `/model sonnet`), since the hard judgment is already in `plan.md`. Switch to Opus only if implementation hits a problem the plan didn't anticipate.
 
 If something in Step 4 turned out to be more urgent or differently-scoped than the ticket implied, say so plainly in this final summary — don't bury a real finding (like a live security issue) at the bottom of a long document where it might get skimmed past.
 
