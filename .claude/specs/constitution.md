@@ -1,6 +1,6 @@
 # ai-skills — Constitution
 
-Non-negotiable rules for authoring and maintaining skills in this repo. This is this repo's own meta-constitution — not to be confused with `skills/development/sdd-specs-init/assets/specs/constitution.md`, which is a generic starter file shipped for *adopters* of the SDD skills to fill in for their own projects.
+Non-negotiable rules for authoring and maintaining skills in this repo. This is this repo's own meta-constitution — not to be confused with `skills/shared/development/sdd-specs-init/assets/specs/constitution.md`, which is a generic starter file shipped for *adopters* of the SDD skills to fill in for their own projects.
 
 ## Article 1 — Stack and host agnosticism
 
@@ -8,11 +8,11 @@ Skills in this repo must not assume a specific language, framework, ticket track
 
 ## Article 2 — SKILL.md structure
 
-Every skill lives at `skills/<category>/<name>/SKILL.md` with YAML frontmatter (`name`, `description`). `<category>` groups skills by specialization/domain (e.g. `development/`) — create a new category folder only once its first real skill actually exists, never speculatively (see Article 6). The category is a repo-organization concept only; it's dropped when a skill is installed into `~/.claude/skills/` or a project's `.claude/skills/`. The `description` is the only thing Claude sees before deciding whether to invoke the skill, so it must be trigger-rich: concrete trigger phrases, when to use it, and — for paired skills — when the companion skill takes over instead.
+Every skill lives at `skills/<compatibility>/<category>/<name>/SKILL.md` with YAML frontmatter (`name`, `description`). `<compatibility>` is `claude-ai` for workflows maintained for Claude Code or `shared` for assistant-neutral or shared workflows, with supported hosts documented per skill. `<category>` groups skills by specialization/domain (e.g. `development/`) — create a new category folder only once its first real skill actually exists, never speculatively (see Article 6). Compatibility and category are repository organization only; both are dropped when installed under flat skill names in Claude Code's `.claude/skills/` or Codex's `.agents/skills/` (project-local or user-global). Source folders contain only canonical directories; repository compatibility symlinks are not maintained. Installed links must target the canonical paths. The `description` is the discovery text assistants see before deciding whether to load the skill, so it must be trigger-rich: concrete trigger phrases, when to use it, and — for paired skills — when the companion skill takes over instead.
 
 ## Article 3 — Supplementary detail goes in `references/`
 
-Worked examples, document skeletons, and long-form templates that would bloat a `SKILL.md`'s primary instructions belong in `skills/<category>/<name>/references/*.md`, linked from the `SKILL.md` rather than inlined.
+Worked examples, document skeletons, and long-form templates that would bloat a `SKILL.md`'s primary instructions belong in `skills/<compatibility>/<category>/<name>/references/*.md`, linked from the `SKILL.md` rather than inlined.
 
 ## Article 4 — Paired skills document their handoff explicitly
 
@@ -20,7 +20,7 @@ When a skill is one half of a pair (e.g. `sdd-ticket-start` / `sdd-ticket-close`
 
 ## Article 5 — Adopter templates are a separate audience from this repo's own specs
 
-`skills/development/sdd-specs-init/assets/specs/` contains generic, fill-in-the-blank starter files for projects *adopting* these skills. `.claude/specs/` (this directory) documents `ai-skills` itself. The two must not be conflated — a change to one is not automatically a change to the other.
+`skills/shared/development/sdd-specs-init/assets/specs/` contains generic, fill-in-the-blank starter files for projects *adopting* these skills. `.claude/specs/` (this directory) documents `ai-skills` itself. The two must not be conflated — a change to one is not automatically a change to the other.
 
 ## Article 6 — No fabricated context
 

@@ -1,101 +1,160 @@
 # ai-skills
 
-A growing collection of reusable [Claude Code](https://claude.com/claude-code) skills, organized by specialization under `skills/<category>/`.
+Reusable skills for Claude Code, Codex and other assistants with access to project files, organized by supported assistant and specialization.
 
-## Skills in this repo
+## General skills
 
 ### Development
 
-Spec-driven development (SDD) skills: turning a raw ticket into a verified spec, plan, and task list before any code is written, and folding what shipped back into a project's durable specs once it's live.
+| Skill | Use it when | Assistant support |
+|---|---|---|
+| [`sdd-specs-init`](skills/shared/development/sdd-specs-init) | Create or refresh a project constitution, tech stack, data model, branching strategy, workflow and optional mission. Derives facts from repository evidence and asks only about missing decisions. Accepts an optional specs-directory argument, creates the folder if missing, and uses `docs/specs/` when omitted. | Claude Code, Codex and other assistants with file access; no specific plugin, model or question tool. |
+| [`project-sync-save`](skills/shared/development/project-sync-save) | Save task context, decisions, authorization, unfinished operations, verification artifacts and current files/Git state before pausing or switching assistants. | Shared Claude Code/Codex workflow. |
+| [`project-sync-load`](skills/shared/development/project-sync-load) | Compare a checkpoint with actual project state, reconcile differences and continue within existing authorization. | Shared Claude Code/Codex workflow. |
 
-Ticket descriptions — vendor bulletins, customer-reported bugs, anything paraphrased secondhand — are frequently vague, wrong, or narrower/broader than they claim. Writing implementation code straight from a ticket means inheriting whatever assumptions the ticket got wrong. SDD, as implemented here, treats a ticket as a *claim to verify*, not a fact to implement:
+`sdd-specs-init` is a general workflow. The handoff pair is shared between Claude Code and Codex; its engine currently accepts those two assistant identifiers. Other assistants can read the format, but broader save identifiers have not yet been implemented. See [Project specs](#project-specs) and [Project handoffs](#project-handoffs) for details.
 
-1. **Kick off** — investigate the ticket against the real codebase and tooling, clarify with you whatever the investigation couldn't settle, then write `spec.md` (what's actually true), `plan.md` (how to fix it, checked against project rules), and `tasks.md` (a concrete checklist) — before writing implementation code.
-2. **Implement** — against the approved plan.
-3. **Close out** — once shipped, verify what actually merged (not just what the plan intended), and fold any durable lessons back into the project's standing specs so the next ticket starts from an accurate baseline.
+## AI-specific skills
 
-| Skill | Use it when |
-|---|---|
-| [`skills/development/sdd-specs-init`](skills/development/sdd-specs-init) | A project has no `.claude/specs/` yet, or they're out of date. Drafts the five spec files from what the repo shows (manifests, git branches, schema files, stated rules), then asks you only what code can't reveal, such as your team's rules and ticket statuses. On a new project with nothing to derive, it interviews you instead. Safe to re-run. |
-| [`skills/development/sdd-ticket-start`](skills/development/sdd-ticket-start) | You're handed a ticket (Jira, Linear, GitHub Issues, or similar) and want to start it with SDD. Creates the branch, investigates the ticket's claims, clarifies open questions with you, produces `spec.md`/`plan.md`/`tasks.md`. |
-| [`skills/development/sdd-ticket-close`](skills/development/sdd-ticket-close) | A ticket that went through `sdd-ticket-start` has merged and deployed. Re-verifies the merge via git, reconciles the real diff against the plan, updates the project's durable specs, and cleans up the ticket folder and branch. |
-
-All three are language- and stack-agnostic. Project-specific detail (base branch name, dependency tooling, ticket status names) is read from a project's own `.claude/specs/` files rather than assumed — see [Project specs](#project-specs) below.
-
-A code review gate, switched on per project:
+### Claude Code — Development
 
 | Skill | Use it when |
 |---|---|
-| [`skills/development/review-instructions-install`](skills/development/review-instructions-install) | You want a project to require a code review before commits. Writes a versioned block into that project's `CLAUDE.md` (creating the file if needed): run `/codex:review --background` after code changes, triage findings, re-review until no `medium`+ severity findings remain (max 5 rounds), and fall back to `/code-review low`/`medium` if Codex isn't available. Safe to re-run: it upgrades an older block and leaves a current one alone. |
+| [`sdd-ticket-start`](skills/claude-ai/development/sdd-ticket-start) | Investigate a ticket against the real codebase, clarify its scope, create a branch, and write `spec.md`, `plan.md` and `tasks.md` before implementation. Uses Claude model/delegation conventions and a Superpowers execution handoff. |
+| [`sdd-ticket-close`](skills/claude-ai/development/sdd-ticket-close) | After a ticket has merged and shipped, verify the actual commits, reconcile the delivered work against its plan, update durable specs and safely clean up ticket files and the local branch. Uses a Claude reconciliation agent. |
+| [`review-instructions-install`](skills/claude-ai/development/review-instructions-install) | Install or update the versioned Claude review-gate block in a project's `CLAUDE.md`. Runs safely again, upgrading older blocks while preserving surrounding text. |
 
-**Codex plugin: recommended, not required.** The installed instructions prefer the Codex plugin's `/codex:review` (from the `openai-codex` marketplace; run `/codex:setup` to check it's ready). Without it, reviews fall back to Claude Code's built-in `/code-review` at `low` or `medium` level, so the gate still works.
+The ticket skills treat a ticket as a claim to verify. Ticket descriptions, vendor bulletins and secondhand bug reports can be vague or wrong; investigation must establish what actually needs to change before planning. The workflow is investigation and planning, approved implementation, then reconciliation after shipping.
 
-The block's text lives in the skill's [`assets/review-instructions-block.md`](skills/development/review-instructions-install/assets/review-instructions-block.md). To change it, edit that file, bump the version in its start marker, and re-run the skill in each project.
+These workflows are language- and stack-agnostic, but remain Claude-oriented. Project details such as base branch, dependency tooling and ticket statuses come from `.claude/specs/`; assistant-specific commands and model aliases stay in their skill definitions. There are currently no Codex-only or Copilot-only skills in this repository.
+
+The review installer writes `/codex:review --background`, finding triage, capped re-review rounds and a `/code-review low`/`medium` fallback into `CLAUDE.md`. The Codex plugin is recommended but optional for that workflow. The canonical block lives in [`assets/review-instructions-block.md`](skills/claude-ai/development/review-instructions-install/assets/review-instructions-block.md); edit it and bump its marker version to change the installed instructions.
+
+## Repository layout
+
+```text
+AGENTS.md                              Shared repository instructions
+CLAUDE.md                              Imports AGENTS.md; Claude review adapter
+skills/shared/development/             General specs initialization and shared handoffs
+skills/claude-ai/development/          Claude ticket and review workflows
+```
+
+Common authoring, architecture, installation and review rules live in [`AGENTS.md`](AGENTS.md). [`CLAUDE.md`](CLAUDE.md) imports them with `@AGENTS.md`, using [Claude's documented import syntax](https://code.claude.com/docs/en/memory#import-additional-files), and keeps Claude-specific review commands. This repository's own `.claude/specs/` stays in place.
+
+Compatibility and category folders organize source files; installed skill names stay flat. The repository contains canonical directories only, with no compatibility symlinks. The old `skills/development/` paths and `skills/claude-ai/development/sdd-specs-init` have been retired; existing installed symlinks need to point to the current canonical folder. Frozen copies remain usable until explicitly refreshed.
 
 ## Installation
 
-Clone this repo once, then link the skill(s) you want. Claude Code supports a skill folder under `~/.claude/skills/<name>/` (or a project's `.claude/skills/<name>/`) being a symlink to a directory elsewhere on disk — it follows the link and reads `SKILL.md` from the target. That means a symlinked skill stays current with a plain `git pull` in this repo, with no re-copying:
+Clone this repository once and install complete skill folders. Use symlinks for updates through `git pull`, or copy for a frozen snapshot. Inspect existing entries before replacing them; never overwrite an unrelated directory or skill.
+
+### General and shared skills
+
+Claude Code uses `~/.claude/skills/`; Codex uses `~/.agents/skills/` and supports symlinked folders ([official documentation](https://learn.chatgpt.com/docs/build-skills)). From the cloned repository root:
 
 ```bash
-# Personal skills (available in every project) — run from the cloned repo root
-ln -s "$(pwd)/skills/development/sdd-specs-init" ~/.claude/skills/sdd-specs-init
-ln -s "$(pwd)/skills/development/sdd-ticket-start" ~/.claude/skills/sdd-ticket-start
-ln -s "$(pwd)/skills/development/sdd-ticket-close" ~/.claude/skills/sdd-ticket-close
-ln -s "$(pwd)/skills/development/review-instructions-install" ~/.claude/skills/review-instructions-install
-
-# Or project-local skills (checked into that project's repo)
-ln -s "$(pwd)/skills/development/sdd-specs-init" <your-project>/.claude/skills/sdd-specs-init
-ln -s "$(pwd)/skills/development/sdd-ticket-start" <your-project>/.claude/skills/sdd-ticket-start
-ln -s "$(pwd)/skills/development/sdd-ticket-close" <your-project>/.claude/skills/sdd-ticket-close
-ln -s "$(pwd)/skills/development/review-instructions-install" <your-project>/.claude/skills/review-instructions-install
+mkdir -p ~/.claude/skills ~/.agents/skills
+for skill in sdd-specs-init project-sync-save project-sync-load; do
+  ln -s "$(pwd)/skills/shared/development/$skill" "$HOME/.claude/skills/$skill"
+  ln -s "$(pwd)/skills/shared/development/$skill" "$HOME/.agents/skills/$skill"
+done
 ```
 
-The category folder (`development/`) is only how this repo organizes skills on disk — the symlink's destination name is what Claude Code actually sees, so it's always flat regardless of source nesting. Adding a skill later is one more `ln -s` line; nothing activates automatically just because it exists in the repo.
+Install the handoff pair together as sibling folders. For project-local discovery use `.claude/skills/` and `.agents/skills/` in the consuming project. Other assistants should use their supported installation mechanism, or be given the complete skill folder and asked to follow `SKILL.md`; automatic discovery depends on the host.
 
-Since a symlinked skill's instructions take effect the moment you `git pull` — and `SKILL.md` is instructions Claude follows directly — it's worth a quick `git log`/`git diff` glance after pulling to see what changed, the same way you'd review any other update to something that drives Claude's behavior. See the official docs on [symlinked skill entries](https://code.claude.com/docs/en/skills.md#where-skills-live) for how Claude Code resolves these.
-
-**Prefer a frozen snapshot instead of live updates?** Copy instead of linking:
+To copy instead of symlink, for example:
 
 ```bash
-cp -r skills/development/sdd-specs-init ~/.claude/skills/
-cp -r skills/development/sdd-ticket-start ~/.claude/skills/
-cp -r skills/development/sdd-ticket-close ~/.claude/skills/
-cp -r skills/development/review-instructions-install ~/.claude/skills/
+cp -r skills/shared/development/sdd-specs-init ~/.claude/skills/
+cp -r skills/shared/development/sdd-specs-init ~/.agents/skills/
 ```
 
-Either way, Claude Code discovers skills automatically from either location — no further configuration needed.
+For handoffs, copy both complete folders into the same skill directory. Templates and references travel inside the skill folders; no package manager or plugin manifest is required.
+
+### Claude-specific skills
+
+```bash
+mkdir -p ~/.claude/skills
+for skill in sdd-ticket-start sdd-ticket-close review-instructions-install; do
+  ln -s "$(pwd)/skills/claude-ai/development/$skill" "$HOME/.claude/skills/$skill"
+done
+```
+
+Use the same canonical folders for project-local symlinks or frozen copies. Symlinked instructions update when this repository is pulled, so review relevant changes just as you would any other update to instructions an assistant follows.
+
+### Migrate existing symlink installations
+
+Run from this repository root. These commands update symlinks only, leaving copied directories alone:
+
+```bash
+for skill in sdd-specs-init project-sync-save project-sync-load; do
+  for destination in "$HOME/.claude/skills" "$HOME/.agents/skills"; do
+    if [ -L "$destination/$skill" ]; then
+      ln -sfn "$(pwd)/skills/shared/development/$skill" "$destination/$skill"
+    fi
+  done
+done
+for skill in sdd-ticket-start sdd-ticket-close review-instructions-install; do
+  if [ -L "$HOME/.claude/skills/$skill" ]; then
+    ln -sfn "$(pwd)/skills/claude-ai/development/$skill" "$HOME/.claude/skills/$skill"
+  fi
+done
+```
+
+Project-local installed symlinks need the same update under their `.claude/skills/` or `.agents/skills/` directory.
 
 ## Project specs
 
-`sdd-ticket-start` and `sdd-ticket-close` both read a project's `.claude/specs/` directory for context (technical rules, tech stack, data model, branching convention, ticket workflow) and update it as tickets close out.
+Run `sdd-specs-init` with one optional project-relative directory. The selected folder and missing parents are created if needed. Without an argument, the destination is always `docs/specs/`.
 
-The easiest way to create them is to run `/sdd-specs-init` in the project. The templates it fills in are in [`skills/development/sdd-specs-init/assets/specs/`](skills/development/sdd-specs-init/assets/specs), each with inline comments describing exactly what each skill step reads from it. To fill them in by hand instead:
+For Claude Code:
 
-```bash
-mkdir -p <your-project>/.claude/specs
-cp skills/development/sdd-specs-init/assets/specs/*.md <your-project>/.claude/specs/
+```text
+/sdd-specs-init                    # docs/specs/
+/sdd-specs-init .claude/specs       # .claude/specs/
+/sdd-specs-init design/specs        # design/specs/
+/sdd-specs-init "project docs/specs" # project docs/specs/
 ```
 
-Fill in the placeholders for your project, then delete the `<!-- comment -->` block at the top of each file. None of the five files are required — a project missing `.claude/specs/` entirely still works with the ticket skills, just with less context to check plans and investigation against.
+Claude Code passes trailing skill arguments through its [documented argument mechanism](https://code.claude.com/docs/en/skills#pass-arguments-to-skills). In Codex or another assistant, invoke or mention the skill with the same directory in your request. Arguments are local directory paths, not web URLs or commands; they must stay within the selected project.
 
-**Track the specs in git.** They're the project's shared memory, for your teammates as much as for the agent, and they should be versioned with the code they describe. If your project ignores `.claude/`, change that rule to `.claude/*` plus `!.claude/specs/`; `sdd-specs-init` checks this and offers the fix.
+Existing specs and configuration do not change the no-argument default. The current Claude `sdd-ticket-start` and `sdd-ticket-close` skills still read `.claude/specs/`: initialize or update their specs with `/sdd-specs-init .claude/specs`. Files in other specs directories remain in place, and existing files in the selected directory are updated rather than replaced wholesale.
+
+The [bundled templates](skills/shared/development/sdd-specs-init/assets/specs) contain guidance comments and placeholders. The skill fills them from evidence and user decisions; it records unknowns instead of inventing rules. If working manually, copy the templates to the project's chosen specs directory, fill them in and remove the guidance comments.
 
 | File | What it captures |
 |---|---|
-| `constitution.md` | Non-negotiable technical rules a plan must satisfy (e.g. "never edit vendor code directly") |
-| `tech-stack.md` | What's actually installed — language, framework, key dependencies, tooling |
-| `data-model.md` | Custom entities/tables and their relationships |
-| `branching-strategy.md` | Base branch, ticket-branch prefix, production branch, remote type |
-| `workflow.md` | The ticket tracker's status lifecycle and how it maps to branch/environment flow |
-| `mission.md` (optional) | Why the project exists: purpose, audience, scope, what success looks like, business constraints |
+| `constitution.md` | Explicit technical rules a plan must satisfy, with reasons and sources |
+| `tech-stack.md` | Language, framework, dependencies and tooling, distinguishing verified versions from constraints |
+| `data-model.md` | Custom entities, storage, relationships and known incomplete work |
+| `branching-strategy.md` | Versioning arrangement, branch roles, prefixes, merge policy and environments |
+| `workflow.md` | Ticket lifecycle and its branch/environment mapping, if the project has one |
+| `mission.md` (optional) | Purpose, audience, scope, success criteria and business constraints |
 
-## Quick start: SDD ticket workflow
+Specs are team memory and should be tracked when Git is used. The skill checks the selected path against actual ignore rules and proposes any needed change. Git is optional; projects without it can keep local specs and document their sharing arrangement. Installed tooling is used where available, with unavailable evidence reported as unverified. No fixed assistant API or model is needed.
 
-1. Install `sdd-specs-init`, `sdd-ticket-start`, and `sdd-ticket-close` (see above), and optionally run `/sdd-specs-init` in the project to create `.claude/specs/`.
-2. Hand Claude a ticket: *"Here's PROJ-123: <description>. Let's use SDD for this."*
-3. Review `.claude/tickets/PROJ-123/spec.md` and `plan.md` — these are gates, not rubber stamps. Push back if the investigation looks thin.
-4. Once approved, implementation proceeds from `plan.md`/`tasks.md`.
-5. After the ticket ships (merged to your production branch), ask Claude to close it out: *"PROJ-123 is deployed, update the specs."* This reconciles the real merged diff against the plan, updates `.claude/specs/`, and removes the ticket folder and branch.
+## Project handoffs
+
+The save/load pair uses one Python 3.9+ standard-library engine and one versioned checkpoint format. Git is needed only for Git projects. Handoffs live locally in ignored `.ai-sync/`, with atomic retained snapshots and selected logs/scripts copied into durable storage. Git saves capture branch, HEAD, index/worktree patches and untracked inventory without committing. Loading compares reality and requires a recorded reconciliation before resuming; processes and locks are inspected without automatically stopping or releasing them.
+
+In Claude Code invoke `/project-sync-save` or `/project-sync-load`; in Codex invoke `$project-sync-save` or `$project-sync-load`. The user chooses when to switch. There is no usage monitoring, automatic switching, cloud storage or private chat-history requirement. Cross-project communication uses the project's separate established mechanism.
+
+The assistant supplies semantic context from the conversation; scripts capture observable state. Optional `.ai-sync.json` supplies extra rule paths, otherwise ignored files and excluded non-Git directory names. See the [shared protocol](skills/shared/development/project-sync-save/references/protocol.md) for schemas, CLI commands, comparison coverage, exit codes and recovery. Source contents are preserved only through Git patches and selected artifacts.
+
+Validate the engine after code changes:
+
+```bash
+python3 -m unittest discover -s skills/shared/development/project-sync-save/scripts -p 'test_*.py' -v
+```
+
+This repository's first practical handoff is in local ignored `.ai-sync/`. Start the receiving assistant in this clone and invoke `project-sync-load` to compare and reconcile it. Local checkpoints are not shipped in Git.
+
+## Quick start: Claude SDD ticket workflow
+
+1. Install the general `sdd-specs-init` and Claude `sdd-ticket-start`/`sdd-ticket-close` skills. Run `/sdd-specs-init .claude/specs` to initialize specs for these ticket consumers.
+2. Give Claude a ticket: *"Here's PROJ-123: <description>. Let's use SDD for this."*
+3. Review `.claude/tickets/PROJ-123/spec.md` and `plan.md`, including the investigation evidence.
+4. After approval, implement against `plan.md`/`tasks.md` and keep them current when the work changes.
+5. After shipping, ask Claude to close out the ticket. It verifies merged work, updates `.claude/specs/` and performs the authorized ticket-file/branch cleanup.
 
 ## License
 

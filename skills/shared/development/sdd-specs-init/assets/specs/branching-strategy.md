@@ -26,7 +26,7 @@ Fill in this project's actual convention. Delete this comment block once filled 
 
 ## Specs Versioning
 
-- **`.claude/specs/` is tracked in git**, shared with the team and versioned with the code it describes. If `.claude/` is gitignored, the ignore rule must be `.claude/*` plus `!.claude/specs/`: git can't re-include a path whose parent directory is excluded, so `.claude/` plus `!.claude/specs/` doesn't work.
+- **`<specs-directory>/` is tracked in git** when Git is used, shared with the team and versioned with the code it describes. Replace this placeholder with the selected specs path. If ignored, adjust the actual ignore rule while preserving unrelated exclusions; Git cannot re-include a file while its parent directory remains excluded. For projects without Git, document how these specs are stored and shared instead.
 - **Spec updates from `sdd-ticket-close`** are committed on the integration branch, since the ticket branch is already merged by then.
 - **Larger constitution revisions** go on their own branch, so it's clear which version of the rules produced which code.
 

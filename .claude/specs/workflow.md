@@ -17,4 +17,4 @@ Not applicable — see `branching-strategy.md`: there's no separate integration/
 ## Notes
 
 - `.claude/specs/` is tracked in git, like any project using these skills (see branching-strategy.md in the adopter templates); the rest of `.claude/` stays ignored.
-- `skills/development/sdd-specs-init/assets/specs/workflow.md` (committed, public-facing) is the generic version of this file for *adopting* projects — don't confuse edits to one for edits to the other (constitution.md Article 5).
+- `skills/shared/development/sdd-specs-init/assets/specs/workflow.md` (committed, public-facing) is the generic version of this file for *adopting* projects — don't confuse edits to one for edits to the other (constitution.md Article 5).

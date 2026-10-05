@@ -2,13 +2,13 @@
 
 ## Language / Runtime
 
-- **Language:** None — this repo is pure Markdown (`SKILL.md` files + reference docs) consumed by Claude Code. No compiled or interpreted source.
+- **Language:** Markdown skill instructions plus Python 3.9+ for the shared project-sync handoff engine and tests.
 - **Framework:** N/A
 
 ## Dependency Management
 
 - **Manifest / lockfile:** None. No package manager is used; there is nothing to install.
-- **Requirements to use this repo:** Git, and a Claude Code–compatible client (CLI, desktop app, or web).
+- **Requirements to use this repo:** A compatible assistant; Python 3.9+ for project-sync, and Git for Git project handoffs.
 
 ## Key Dependencies
 
@@ -19,7 +19,7 @@ None to install. Skills reference Claude Code extensions they don't own but assu
 
 ## Tooling
 
-- **Test runner:** None currently. Skills are validated by manual review/dogfooding, not automated tests.
+- **Test runner:** Python unittest for project-sync: `python3 -m unittest discover -s skills/shared/development/project-sync-save/scripts -p 'test_*.py' -v`. Other skills use manual review/dogfooding.
 - **Linter / formatter:** None currently — Markdown is hand-formatted.
 - **CI:** None configured.
 

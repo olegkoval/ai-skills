@@ -1,3 +1,5 @@
 .claude/*
 !.claude/specs/
 .idea/
+/.ai-sync/
+__pycache__/

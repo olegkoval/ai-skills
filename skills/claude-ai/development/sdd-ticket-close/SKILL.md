@@ -80,7 +80,7 @@ If a ticket genuinely taught nothing durable beyond what's already in the specs,
 
 **Fix dangling references as you go.** If any spec or project instructions file pointed at something this ticket changed (a version number, a "not yet implemented" note, a file path that moved), update it in the same pass — don't leave a spec accurate as of the ticket's start but wrong as of its finish.
 
-The specs are tracked in git (see `branching-strategy.md`), so these updates are a normal change that needs committing. The ticket branch is already merged by now, so they belong on the integration branch, e.g. as `<TICKET-CODE> update specs`. The commit itself follows the project's usual commit rules. If `.claude/specs/` turns out to be gitignored in this project, say so in the report and suggest running `sdd-specs-init`, which fixes the ignore rule.
+The specs are tracked in git (see `branching-strategy.md`), so these updates are a normal change that needs committing. The ticket branch is already merged by now, so they belong on the integration branch, e.g. as `<TICKET-CODE> update specs`. The commit itself follows the project's usual commit rules. If `.claude/specs/` turns out to be gitignored in this project, say so in the report and suggest running `sdd-specs-init .claude/specs`, which checks the ignore rule for that directory.
 
 ## Step 5 — Retire the ticket folder
 

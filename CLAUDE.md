@@ -1,42 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+@AGENTS.md
 
-## What this repo is
-
-A collection of reusable Claude Code skills, organized by specialization under `skills/<category>/`. Currently home to spec-driven development (SDD) skills under `skills/development/` — verifying a ticket's claims against the real codebase before writing `spec.md`/`plan.md`/`tasks.md`, then folding what actually shipped back into a project's durable specs — with other categories to follow as they're added. There is no build, lint, or test tooling — the repo is pure Markdown (`SKILL.md` files and reference docs) consumed directly by Claude Code. There is nothing to install or compile.
-
-## Architecture: two parallel "specs" directories, do not conflate them
-
-This is the one thing that requires cross-file context to get right, since both directories use the same five core filenames (`constitution.md`, `tech-stack.md`, `data-model.md`, `branching-strategy.md`, `workflow.md`), plus an optional `mission.md` (a template exists; this repo's own specs don't have one):
-
-- **`skills/development/sdd-specs-init/assets/specs/`** — committed, public-facing, generic fill-in-the-blank templates. These ship *to adopters*: the `sdd-specs-init` skill fills them into a project's own `.claude/specs/` (or an adopter copies them by hand). Editing these files changes what every future adopter starts from. They live inside `sdd-specs-init` so they travel with it, whether it's installed by symlink or copy.
-- **`.claude/specs/`** (this repo's own, tracked in git) — the actual constitution/specs *for ai-skills itself*, written the same way any project using these skills would write its own. Editing these only affects how `sdd-ticket-start`/`sdd-ticket-close` behave if run against this repo directly (e.g. to add a new skill here).
-
-A change describing "how this repo works" belongs in `.claude/specs/`. A change describing "what an adopter's blank template should say" belongs in `skills/development/sdd-specs-init/assets/specs/`. See `.claude/specs/constitution.md` Article 5.
-
-## Architecture: skill folder structure
-
-Each skill is `skills/<category>/<name>/SKILL.md` with YAML frontmatter (`name`, `description`). The category (e.g. `development/`) groups skills by specialization as the collection grows — it's a repo-organization concept only, and is dropped when a skill is installed (see "Installation model" below). Only create a new category folder once its first real skill exists; don't scaffold empty placeholder categories speculatively. The `description` is the only thing Claude sees before deciding to invoke the skill, so it carries all the trigger phrasing — treat it as load-bearing, not boilerplate. Long-form content that would bloat the primary instructions (worked examples, document skeletons) lives in `skills/<category>/<name>/references/*.md` and is linked from `SKILL.md`, not inlined.
-
-`sdd-specs-init` creates or updates a project's `.claude/specs/` that the ticket skills read. `sdd-ticket-start` and `sdd-ticket-close` are a paired start/close-out skill: each `SKILL.md` states explicitly where its own responsibility ends and the other's begins (`sdd-ticket-start` stops at `tasks.md` and hands off to `superpowers:executing-plans`; `sdd-ticket-close` only runs after a ticket has actually merged to production, verified via git, not taken on faith).
-
-## Design constraint: stack and host agnosticism
-
-Both skills read project-specific detail (base branch name, dependency-manager tooling, ticket status names) from the *consuming* project's own `.claude/specs/` files at run time — nothing about a specific language, framework, or vendor is hardcoded into a skill. This was a deliberate generalization from earlier Magento/Composer-specific originals; when editing either skill, avoid reintroducing stack-specific assumptions into the shared instructions (illustrative examples in `references/templates.md` are fine — logic in `SKILL.md` is not).
-
-## Model roles in skills
-
-Pin a model only where a skill actually dispatches an agent, and document the role next to that dispatch, not in a policy section per skill:
-- **Opus** (`model: "opus"`) for synthesis and judgment: planning, reconciling conflicting evidence, deciding what's durable, final review. Currently: `sdd-ticket-start`'s planning subagent and fallback review subagent, and `sdd-ticket-close`'s reconciliation subagent.
-- **Sonnet** (`model: "sonnet"`) for parallel evidence collection and implementation workers.
-- **No `model`** (inherit) for everything else, including the main-session steps and deterministic skills like `review-instructions-install`.
-
-`opus` and `sonnet` are Claude Code's aliases for the latest model in each family, so skills never name a version. A pinned model needs a fresh (non-fork) agent, because a fork ignores the `model` override. External skills and plugins (`superpowers:executing-plans`, `/codex:review`, `/code-review`) choose their own models; skills can only recommend a session model for them, not set one.
-
-## Installation model
-
-There's no package manager or plugin manifest yet. The documented, primary installation method is a per-skill symlink: `~/.claude/skills/<name>` (or a project's `.claude/skills/<name>`) can be a symlink to `skills/<category>/<name>/` in a cloned copy of this repo — Claude Code follows it and reads `SKILL.md` from the target, so `git pull` updates the skill live with no re-copy step (see the official docs on [symlinked skill entries](https://code.claude.com/docs/en/skills.md#where-skills-live)). Copying (`cp -r`) is documented as a fallback for a frozen snapshot instead of live updates. Either way the destination is flat, with the category segment dropped — see README.md for the exact commands.
+Shared repository instructions live in `AGENTS.md`. This file supplies the Claude Code review adapter; keep common rules in the shared file.
 
 <!-- review-instructions:start v3 -->
 ## Code review gate

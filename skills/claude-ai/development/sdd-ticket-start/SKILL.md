@@ -7,7 +7,7 @@ description: Use this skill whenever the user hands over a ticket (a code like P
 
 Turns a raw ticket (code + description) into a working branch and three grounded planning documents — spec, plan, tasks — before any implementation begins. The point of this skill is not paperwork for its own sake: it's that ticket descriptions (especially vendor bulletins, customer-reported bugs, or anything paraphrased secondhand) are frequently vague, wrong, or narrower/broader than they claim. A spec built by actually checking the codebase catches that before a single line of implementation code gets written on a wrong assumption.
 
-This skill is stack-agnostic. Where a step needs project-specific detail (base branch name, dependency tooling, ticket status names), it reads that from this project's `.claude/specs/` files rather than assuming any particular language or stack. If this project doesn't have them yet, the `sdd-specs-init` skill creates them (its templates are in `skills/development/sdd-specs-init/assets/specs/` in the `ai-skills` repo).
+This skill is stack-agnostic. Where a step needs project-specific detail (base branch name, dependency tooling, ticket status names), it reads that from this project's `.claude/specs/` files rather than assuming any particular language or stack. If this project doesn't have them yet, the `sdd-specs-init` skill creates them (its templates are in `skills/shared/development/sdd-specs-init/assets/specs/` in the `ai-skills` repo).
 
 ## When you're given a ticket
 
@@ -61,7 +61,7 @@ Read whatever exists, and don't fail if something doesn't:
 - `.claude/specs/mission.md` (optional) — the project's purpose, audience and scope, used in Step 5 to judge whether the ticket's scope fits the project.
 - The project's root `CLAUDE.md`/`AGENTS.md` and the user's global instructions file.
 
-**If `.claude/specs/` doesn't exist in this project:** suggest running `sdd-specs-init` first to create it. If the user declines, don't stop, and don't invent constitution-style rules that aren't there. Proceed using whatever project-level instructions exist plus direct investigation of the codebase, and say plainly in `spec.md` that these weren't available — a gap noted honestly is fine; a fabricated one isn't.
+**If `.claude/specs/` doesn't exist in this project:** suggest running `sdd-specs-init .claude/specs` first to create it. If the user declines, don't stop, and don't invent constitution-style rules that aren't there. Proceed using whatever project-level instructions exist plus direct investigation of the codebase, and say plainly in `spec.md` that these weren't available — a gap noted honestly is fine; a fabricated one isn't.
 
 ## Step 4 — Investigate, don't paraphrase
 
