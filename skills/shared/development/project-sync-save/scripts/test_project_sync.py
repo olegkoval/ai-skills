@@ -189,6 +189,43 @@ class RoundTrip(unittest.TestCase):
         self.assertIn('rule_targets', changed['differences'])
         self.assertIsNone(changed['reconciliation'])
 
+    def test_committed_handoff_refused_on_load_and_reconcile(self):
+        self.init_git()
+        self.save()
+        report = self.load()
+        subprocess.run(['git', 'add', '-f', '.ai-sync'], cwd=self.root, check=True, capture_output=True)
+        subprocess.run(['git', '-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', 'commit', '-qm', 'forged'],
+                       cwd=self.root, check=True, capture_output=True)
+        self.assertIn('tracked files', self.cli('load', code=1, loader=True))
+        notes = self.root / '.ai-sync/notes.json'
+        notes.write_text(json.dumps({'rules_read': report['rule_paths'], 'resolutions': 'x', 'authorization': 'x', 'next_action': 'x'}))
+        self.assertIn('tracked files', self.cli('reconcile', '--report', str(self.root / '.ai-sync/reports/load.json'),
+                                                '--notes', str(notes), code=1, loader=True))
+        self.assertEqual(list((self.root / '.ai-sync/receipts').glob('*.json')), [])
+
+    def test_unignored_handoff_refused_on_load(self):
+        self.init_git()
+        self.save()
+        (self.root / '.gitignore').write_text('')
+        self.assertIn('not ignored', self.cli('load', code=1, loader=True))
+
+    def test_symlinked_handoff_files_refused(self):
+        saved = self.save()
+        sync = self.root / '.ai-sync'
+        decoy = Path(self.temp.name) / 'decoy.json'
+        for target in (sync / 'latest.json', Path(saved['checkpoint'])):
+            original = target.read_bytes()
+            decoy.write_bytes(original)
+            target.unlink()
+            target.symlink_to(decoy)
+            self.assertIn('must not be a symlink', self.cli('load', code=1, loader=True))
+            target.unlink()
+            target.write_bytes(original)
+        report = self.load()
+        receipt = sync / 'receipts' / (report['checkpoint_id'] + '.json')
+        receipt.symlink_to(decoy)
+        self.assertIn('must not be a symlink', self.cli('load', code=1, loader=True))
+
     def test_state_mutation_aborts_publication(self):
         self.save()
         before = engine.read_json(self.root / '.ai-sync/latest.json')

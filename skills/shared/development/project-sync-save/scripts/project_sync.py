@@ -294,11 +294,23 @@ def now():
     return dt.datetime.now(dt.timezone.utc).isoformat()
 
 
-def ensure_ignored(root):
+def refuse_tracked(root):
     if not git_root(root):
-        return
+        return False
     if git(root, 'ls-files', '--', '.ai-sync').stdout:
         raise ValueError('.ai-sync contains tracked files; stop and resolve tracking explicitly')
+    return True
+
+
+def assert_local_storage(root):
+    # A committed .ai-sync/ comes from someone else's clone; never present it as this user's handoff.
+    if refuse_tracked(root) and git(root, 'check-ignore', '--quiet', '.ai-sync/', ok=True).returncode:
+        raise ValueError('.ai-sync is not ignored; run project-sync-save or inspect ignore rules before loading')
+
+
+def ensure_ignored(root):
+    if not refuse_tracked(root):
+        return
     probe = git(root, 'check-ignore', '--quiet', '.ai-sync/', ok=True)
     if probe.returncode == 0:
         return
@@ -363,15 +375,21 @@ def save(args, root):
     return {'saved': identifier, 'checkpoint': str(sync / 'snapshots' / identifier / 'checkpoint.json')}
 
 
+def read_regular_json(path):
+    if path.is_symlink():
+        raise ValueError(f'{path.name} must not be a symlink')
+    return read_json(path)
+
+
 def checkpoint(sync):
-    latest = read_json(sync / 'latest.json')
+    latest = read_regular_json(sync / 'latest.json')
     identifier = latest['id']
     if not isinstance(identifier, str) or Path(identifier).name != identifier or identifier in {'.', '..'}:
         raise ValueError('Invalid snapshot id')
     folder = sync / 'snapshots' / identifier
     if folder.is_symlink():
         raise ValueError('Snapshot must not be a symlink')
-    value = read_json(folder / 'checkpoint.json')
+    value = read_regular_json(folder / 'checkpoint.json')
     if value.get('format_version') != VERSION or value.get('id') != identifier:
         raise ValueError('Unsupported or inconsistent checkpoint')
     validate_context(value['context'])
@@ -401,7 +419,7 @@ def load_report(root, sync):
         if fingerprint(path) != item['fingerprint']:
             damaged.append(item['path'])
     receipt_path = sync / 'receipts' / (value['id'] + '.json')
-    receipt = read_json(receipt_path) if receipt_path.exists() else None
+    receipt = read_regular_json(receipt_path) if receipt_path.exists() or receipt_path.is_symlink() else None
     receipt_valid = bool(receipt and receipt.get('checkpoint_digest') == digest(value)
                          and receipt.get('actual_digest') == digest(actual))
     return {'format_version': VERSION, 'checkpoint_id': value['id'], 'checkpoint_digest': digest(value),
@@ -432,6 +450,7 @@ def main():
     if args.command == 'save':
         result = save(args, root)
     else:
+        assert_local_storage(root)
         sync = storage(root)
         result = load_report(root, sync)
         if args.command == 'reconcile':
