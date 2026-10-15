@@ -39,6 +39,38 @@ The triggers come in three layers:
 
 Opt in with `.claude/specs/sdd-gate.json`, starting from the [template](skills/shared/development/sdd-specs-init/assets/sdd-gate.json). Without that file, every plan still gets a human review. The gate only reads that policy path and only accepts ticket folders at `.claude/tickets/<TICKET-CODE>`, so neither can be swapped for another location.
 
+#### `.claude/specs/sdd-gate.json` format
+
+A JSON object with these keys. Any other key, or any invalid value, makes the whole policy invalid, and every plan gets `HUMAN_REVIEW`.
+
+| Key | Required | Value |
+|---|---|---|
+| `schema` | yes | Always `1`. |
+| `description` | no | Free text for people; the gate ignores it. |
+| `auto_implement` | no | `true` or `false` (default `false`). Only `true` allows `AUTO_IMPLEMENT`. |
+| `relax` | no | Object mapping a **default** trigger ID to a non-empty reason. That trigger then no longer forces human review. Allowed IDs: `framework_core`, `schema_change`, `public_contract`, `dependency_change`, `global_config`, `integration_change`, `payments_pii`. Floor triggers can't be relaxed. |
+| `additional_triggers` | no | Object mapping your own trigger ID to its definition. IDs use lowercase letters, digits and `_`, start with a letter, and can't reuse a canonical ID. The planner and reviewer must answer each one; `yes` or `unknown` forces human review. |
+| `path_rules` | no | Array of protected-path globs, relative to the project root: no leading `/`, no `..`, forward slashes only. `**` matches any number of directories, `*` matches within one directory, `?` matches one character. Patterns are anchored at the root, so use `**/name` to match at any depth. A planned file matching a rule forces human review. At commit time, an unplanned changed file matching a rule stops for your confirmation. |
+
+Example for a Magento project:
+
+```json
+{
+  "schema": 1,
+  "description": "Auto-implement routine custom-module work; anything touching patches or core config needs a person.",
+  "auto_implement": true,
+  "relax": {
+    "dependency_change": "Lockfile-only bumps of dev tooling are routine here and covered by CI."
+  },
+  "additional_triggers": {
+    "cache_layout": "The change alters full-page cache keys, tags or invalidation."
+  },
+  "path_rules": ["m2-hotfixes/**", "app/etc/**", "**/etc/db_schema.xml", "**/etc/acl.xml"]
+}
+```
+
+The file is hashed into each `gate.json`, so editing it makes existing gates stale until `sdd-plan-review` runs again. Track it in Git so the whole team shares one policy.
+
 `gate.py` needs Python 3.9+ (standard library only), and Git to bind a decision to the branch and commit; non-Git projects always get `HUMAN_REVIEW`. Validate gate changes with:
 
 ```bash
