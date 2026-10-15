@@ -6,7 +6,7 @@ Reusable skills for Claude Code, Codex and other assistants with access to proje
 
 ### Development
 
-| Skill | Use it when | Assistant support |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Skill&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Use it when | Assistant support |
 |---|---|---|
 | [`sdd-specs-init`](skills/shared/development/sdd-specs-init) | Create or refresh a project constitution, tech stack, data model, branching strategy, workflow and optional mission. Derives facts from repository evidence and asks only about missing decisions. Accepts an optional specs-directory argument, creates the folder if missing, and uses `docs/specs/` when omitted. | Claude Code, Codex and other assistants with file access; no specific plugin, model or question tool. |
 | [`project-sync-save`](skills/shared/development/project-sync-save) | Save task context, decisions, authorization, unfinished operations, verification artifacts and current files/Git state before pausing or switching assistants. | Shared Claude Code/Codex workflow. |
@@ -18,7 +18,7 @@ Reusable skills for Claude Code, Codex and other assistants with access to proje
 
 ### Claude Code — Development
 
-| Skill | Use it when |
+| &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Skill&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Use it when |
 |---|---|
 | [`sdd-ticket-start`](skills/claude-ai/development/sdd-ticket-start) | Investigate a ticket against the real codebase, clarify its scope, create a branch, and write `spec.md`, `plan.md` and `tasks.md` before implementation. Uses Claude model/delegation conventions and a Superpowers execution handoff. |
 | [`sdd-ticket-close`](skills/claude-ai/development/sdd-ticket-close) | After a ticket has merged and shipped, verify the actual commits, reconcile the delivered work against its plan, update durable specs and safely clean up ticket files and the local branch. Uses a Claude reconciliation agent. |
@@ -28,7 +28,7 @@ The ticket skills treat a ticket as a claim to verify. Ticket descriptions, vend
 
 These workflows are language- and stack-agnostic, but remain Claude-oriented. Project details such as base branch, dependency tooling and ticket statuses come from `.claude/specs/`; assistant-specific commands and model aliases stay in their skill definitions. There are currently no Codex-only or Copilot-only skills in this repository.
 
-The review installer writes `/codex:review --background`, finding triage, capped re-review rounds and a `/code-review low`/`medium` fallback into `CLAUDE.md`. If no reviewer can run, the gate is reported as unmet, never passed. The Codex plugin is recommended but optional for that workflow. The canonical block lives in [`assets/review-instructions-block.md`](skills/claude-ai/development/review-instructions-install/assets/review-instructions-block.md); edit it and bump its marker version to change the installed instructions.
+The review installer writes `/codex:review --background`, finding triage, re-review until no `medium`+ severity findings remain (max 5 rounds), and a `/code-review low`/`medium` fallback into `CLAUDE.md`. If no reviewer can run, the gate is reported as unmet, never passed. The Codex plugin is recommended but optional for that workflow. The canonical block lives in [`assets/review-instructions-block.md`](skills/claude-ai/development/review-instructions-install/assets/review-instructions-block.md); edit it and bump its marker version to change the installed instructions.
 
 ## Repository layout
 
@@ -134,7 +134,7 @@ Specs are team memory and should be tracked when Git is used. The skill checks t
 
 ## Project handoffs
 
-The save/load pair uses one Python 3.9+ standard-library engine and one versioned checkpoint format. Git is needed only for Git projects. Handoffs live locally in ignored `.ai-sync/`, with atomic retained snapshots and selected logs/scripts copied into durable storage. Git saves capture branch, HEAD, index/worktree patches and untracked inventory without committing. Loading compares reality and requires a recorded reconciliation before resuming; processes and locks are inspected without automatically stopping or releasing them.
+The save/load pair uses one Python 3.9+ standard-library engine and one versioned checkpoint format. Git is needed only for Git projects. Handoffs live locally in ignored `.ai-sync/`, with atomic retained snapshots and selected logs/scripts copied into durable storage. Git saves capture branch, HEAD, index/worktree patches and untracked inventory without committing. Loading compares reality and requires a recorded reconciliation before resuming; processes and locks are inspected without automatically stopping or releasing them. It refuses a `.ai-sync/` that is tracked or not ignored in Git, and symlinked handoff files, so a handoff committed to a repository you cloned is never presented as yours.
 
 In Claude Code invoke `/project-sync-save` or `/project-sync-load`; in Codex invoke `$project-sync-save` or `$project-sync-load`. The user chooses when to switch. There is no usage monitoring, automatic switching, cloud storage or private chat-history requirement. Cross-project communication uses the project's separate established mechanism.
 
@@ -145,8 +145,6 @@ Validate the engine after code changes:
 ```bash
 python3 -m unittest discover -s skills/shared/development/project-sync-save/scripts -p 'test_*.py' -v
 ```
-
-This repository's first practical handoff is in local ignored `.ai-sync/`. Start the receiving assistant in this clone and invoke `project-sync-load` to compare and reconcile it. Local checkpoints are not shipped in Git.
 
 ## Quick start: Claude SDD ticket workflow
 
