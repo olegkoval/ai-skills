@@ -44,6 +44,8 @@ The current `sdd-ticket-start`/`sdd-ticket-close` skills still read `.claude/spe
 
 `mission.md` is optional. If it is missing and within the requested scope, offer it once when purpose or audience is unclear; otherwise leave it absent. A previously declined mission is not offered again unless the user brings it up.
 
+`sdd-gate.json` is an optional policy for the Claude `sdd-plan-review` gate, read only from `.claude/specs/sdd-gate.json`. Create or change it only when the user explicitly asks or agrees; never add it by default. Start from [`assets/sdd-gate.json`](assets/sdd-gate.json), which keeps `auto_implement` false; set it to `true` only on the user's explicit choice. Relaxations name default triggers only and carry the user's reason; path rules come from the user's decisions, and you may propose candidates from evidence (for example a vendor-patch folder). An absent file means automatic implementation is off.
+
 ## Step 2 — Derive from evidence (read-only)
 
 Draft what the project supports, citing files, commands or stated rules:

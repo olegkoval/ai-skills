@@ -1,0 +1,8 @@
+{
+  "schema": 1,
+  "description": "Policy for the Claude sdd-plan-review gate. Read only from .claude/specs/sdd-gate.json. auto_implement stays false until the team explicitly enables it. relax may name default triggers only (never floor triggers), each with a reason. path_rules are project-relative globs anchored at the project root: ** spans directories, * stays within one; use **/name to match at any depth.",
+  "auto_implement": false,
+  "relax": {},
+  "additional_triggers": {},
+  "path_rules": []
+}

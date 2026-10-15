@@ -87,7 +87,17 @@ consumers of the thing being changed, list testing all N, not "test the feature"
 
 <How this moves through the project's branch/environment flow, per branching-strategy.md /
 workflow.md if present. Note anything specific to this change worth flagging there.>
+
+## Planned files
+
+<Every project-relative path the implementation creates, modifies or deletes, one per line,
+exact paths only (no globs). Mirrors `planned_files` in planner-risk.json, which is the copy the
+plan gate reads. A file that matters but can't be named yet is an investigation gap.>
+
+- `<path/to/file>` — <create | modify | delete>
 ```
+
+Risk-trigger answers don't go in `plan.md`. They live in `planner-risk.json` next to it, one answer with evidence per trigger in `sdd-plan-review`'s `triggers.json`.
 
 ## `tasks.md` skeleton
 
@@ -98,6 +108,8 @@ workflow.md if present. Note anything specific to this change worth flagging the
 - [ ] <Step 2>
 - [ ] <verification tasks — one per thing plan.md's Verification section lists, not a single
       "test it" line>
+- [ ] Review the ticket's diff with the project's review gate and address findings
+- [ ] Pre-commit plan gate: `gate.py verify --diff` — last check, after review fixes (see sdd-ticket-implement Step 4)
 - [ ] Commit with message `<TICKET-CODE> <description>` — a single short subject line, no body.
       The ticket code MUST be the first token, not buried mid-sentence. The detailed why/what
       belongs in this ticket's spec.md/plan.md, not the commit message — don't restate it there.

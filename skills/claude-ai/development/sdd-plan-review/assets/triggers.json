@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "answers": ["yes", "no", "unknown"],
+  "floor": {
+    "security_sensitive_runtime_change": "The change ships or alters security-relevant runtime behavior: a vendor or application security patch that reaches runtime, a CVE remediation affecting application behavior, or changes to application security logic. A security bump of a dev-only dependency that never ships to runtime is dependency_change instead, unless another floor trigger applies.",
+    "authn_authz": "The change alters authentication, authorization, session handling, password or credential flows, roles, ACLs or any other access-control behavior.",
+    "secrets_crypto": "The change creates, reads, moves, rotates or exposes secrets or credentials, or changes cryptographic behavior (hashing, signing, encryption, key handling).",
+    "security_controls": "The change alters security controls or policy: security headers, CSP/CORS, input-validation or sanitization layers, permission rules, sandbox or hook settings, or CI/CD steps that handle secrets or enforce security checks.",
+    "irreversible_data": "The change ships or performs an operation that destroys or irreversibly transforms data (dropping or rewriting columns or tables, destructive migrations or backfills, deleting records or files outside the working tree).",
+    "agent_external_action": "The task legitimately requires the implementing agent itself to perform a privileged or externally visible action: deploying, mutating infrastructure, writing to an external API, sending messages, or another remote side effect. Actions the workflow forbids outright (such as git push in sdd-ticket-start plans) are not this trigger; they are plan contract violations for the reviewer.",
+    "open_decision": "A product or engineering decision the plan depends on is unresolved, or the ticket and the verified code behavior contradict each other in a way that needs a human decision.",
+    "investigation_incomplete": "Investigation the plan depends on could not be completed reliably: a permission denial or unreadable source the plan relies on, installed dependencies that differ from the lockfile while the plan relies on that code, an important ticket claim the plan depends on that remains unverified, or a trigger answer that cannot be established because evidence is unavailable. Harmless missing context that cannot affect the plan does not count."
+  },
+  "defaults": {
+    "framework_core": "The change modifies, patches or overrides framework, platform or vendor core code or behavior rather than project-owned code.",
+    "schema_change": "The change alters a database schema or persistent data structure in a non-destructive way.",
+    "public_contract": "The change alters an externally visible API, event, message format, CLI or other contract that other systems or users depend on.",
+    "dependency_change": "The change adds, removes or upgrades a dependency, or changes a lockfile.",
+    "global_config": "The change alters configuration that applies to every environment, store or tenant.",
+    "integration_change": "The change alters scheduled jobs, queues or consumers, webhooks or other integrations with external systems.",
+    "payments_pii": "The change touches payment, financial, personal-data or compliance-relevant behavior."
+  }
+}

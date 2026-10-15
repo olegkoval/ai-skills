@@ -90,7 +90,7 @@ Once its content is folded in:
 rm -r .claude/tickets/<TICKET-CODE>/
 ```
 
-Confirm the folder contains only the expected `spec.md`/`plan.md`/`tasks.md` (and no unexpected files) before removing it wholesale — if something else is in there, flag it rather than silently deleting it. These files are typically untracked (`.claude/` is commonly gitignored in these projects) — check `git ls-files .claude/tickets/<TICKET-CODE>/` first, and if anything *is* tracked, remove it with `git rm` instead of a plain `rm` so the deletion is a proper commit, not just a filesystem change no one can see.
+Confirm the folder contains only the expected files before removing it wholesale: `spec.md`, `plan.md`, `tasks.md`, and the plan-gate files `planner-risk.json`, `review.json`, `gate.json` and `implementation-approval.json` when present. If anything else is in there, flag it rather than silently deleting it. These files are typically untracked (`.claude/` is commonly gitignored in these projects) — check `git ls-files .claude/tickets/<TICKET-CODE>/` first, and if anything *is* tracked, remove it with `git rm` instead of a plain `rm` so the deletion is a proper commit, not just a filesystem change no one can see.
 
 ## Step 6 — Delete the local ticket branch if fully merged into production
 

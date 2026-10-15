@@ -21,10 +21,23 @@ Reusable skills for Claude Code, Codex and other assistants with access to proje
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Skill&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Use it when |
 |---|---|
 | [`sdd-ticket-start`](skills/claude-ai/development/sdd-ticket-start) | Investigate a ticket against the real codebase, clarify its scope, create a branch, and write `spec.md`, `plan.md` and `tasks.md` before implementation. Uses Claude model/delegation conventions and a Superpowers execution handoff. |
+| [`sdd-plan-review`](skills/claude-ai/development/sdd-plan-review) | Independently review a ticket's plan with a fresh read-only Opus reviewer (one revision round at most), then run a deterministic gate that decides `AUTO_IMPLEMENT` or `HUMAN_REVIEW`. Runs at the end of `sdd-ticket-start`; re-run it after editing a plan. |
+| [`sdd-ticket-implement`](skills/claude-ai/development/sdd-ticket-implement) | Start implementing a gated ticket in a fresh session: verify the gate is still current, confirm live when it decided `HUMAN_REVIEW`, hand off to `superpowers:executing-plans`, and check the actual diff against the planned files before commit. Never pushes. |
 | [`sdd-ticket-close`](skills/claude-ai/development/sdd-ticket-close) | After a ticket has merged and shipped, verify the actual commits, reconcile the delivered work against its plan, update durable specs and safely clean up ticket files and the local branch. Uses a Claude reconciliation agent. |
 | [`review-instructions-install`](skills/claude-ai/development/review-instructions-install) | Install or update the versioned Claude review-gate block in a project's `CLAUDE.md`. Runs safely again, upgrading older blocks while preserving surrounding text. |
 
-The ticket skills treat a ticket as a claim to verify. Ticket descriptions, vendor bulletins and secondhand bug reports can be vague or wrong; investigation must establish what actually needs to change before planning. The workflow is investigation and planning, approved implementation, then reconciliation after shipping.
+The ticket skills treat a ticket as a claim to verify. Ticket descriptions, vendor bulletins and secondhand bug reports can be vague or wrong; investigation must establish what actually needs to change before planning. The workflow is investigation and planning, an independent plan review and gate, implementation in a fresh session, then reconciliation after shipping.
+
+**The plan gate.** A person reads only the plans that need it. Both the planner and a fresh reviewer answer the same risk checklist in [`triggers.json`](skills/claude-ai/development/sdd-plan-review/assets/triggers.json), then `gate.py` applies the project's policy and decides:
+- **`AUTO_IMPLEMENT`** only when the project opted in, nobody flagged a risk trigger (`unknown` counts as flagged), no protected path is planned, and the reviewer approved.
+- **`HUMAN_REVIEW`** otherwise, including whenever an input is missing or malformed.
+
+The triggers come in three layers:
+- **Floor triggers** can never be relaxed: security-sensitive runtime changes, authentication/authorization, secrets, security controls, irreversible data changes, external actions by the agent, open decisions and incomplete investigation.
+- **Default triggers** can be relaxed by the project with a stated reason: framework core, schema, public contracts, dependencies, global config, integrations, payments/PII.
+- **Project additions:** your own triggers and protected-path globs.
+
+Opt in with `.claude/specs/sdd-gate.json`, starting from the [template](skills/shared/development/sdd-specs-init/assets/sdd-gate.json). Without that file, every plan still gets a human review.
 
 These workflows are language- and stack-agnostic, but remain Claude-oriented. Project details such as base branch, dependency tooling and ticket statuses come from `.claude/specs/`; assistant-specific commands and model aliases stay in their skill definitions. There are currently no Codex-only or Copilot-only skills in this repository.
 
@@ -74,7 +87,7 @@ For handoffs, copy both complete folders into the same skill directory. Template
 
 ```bash
 mkdir -p ~/.claude/skills
-for skill in sdd-ticket-start sdd-ticket-close review-instructions-install; do
+for skill in sdd-ticket-start sdd-plan-review sdd-ticket-implement sdd-ticket-close review-instructions-install; do
   ln -s "$(pwd)/skills/claude-ai/development/$skill" "$HOME/.claude/skills/$skill"
 done
 ```
@@ -93,7 +106,7 @@ for skill in sdd-specs-init project-sync-save project-sync-load; do
     fi
   done
 done
-for skill in sdd-ticket-start sdd-ticket-close review-instructions-install; do
+for skill in sdd-ticket-start sdd-plan-review sdd-ticket-implement sdd-ticket-close review-instructions-install; do
   if [ -L "$HOME/.claude/skills/$skill" ]; then
     ln -sfn "$(pwd)/skills/claude-ai/development/$skill" "$HOME/.claude/skills/$skill"
   fi
@@ -148,10 +161,10 @@ python3 -m unittest discover -s skills/shared/development/project-sync-save/scri
 
 ## Quick start: Claude SDD ticket workflow
 
-1. Install the general `sdd-specs-init` and Claude `sdd-ticket-start`/`sdd-ticket-close` skills. Run `/sdd-specs-init .claude/specs` to initialize specs for these ticket consumers.
-2. Give Claude a ticket: *"Here's PROJ-123: <description>. Let's use SDD for this."*
-3. Review `.claude/tickets/PROJ-123/spec.md` and `plan.md`, including the investigation evidence.
-4. After approval, implement against `plan.md`/`tasks.md` and keep them current when the work changes.
+1. Install the general `sdd-specs-init` and the Claude `sdd-ticket-start`, `sdd-plan-review`, `sdd-ticket-implement` and `sdd-ticket-close` skills. Run `/sdd-specs-init .claude/specs` to initialize specs for these ticket consumers. To allow automatic implementation of low-risk plans, add `.claude/specs/sdd-gate.json` with `"auto_implement": true`.
+2. Give Claude a ticket: *"Here's PROJ-123: <description>. Let's use SDD for this."* It ends with the gate's decision.
+3. On `HUMAN_REVIEW`, read `.claude/tickets/PROJ-123/spec.md` and `plan.md` and the listed reasons. On `AUTO_IMPLEMENT`, no document review is needed.
+4. In a fresh session (Sonnet recommended), run `/sdd-ticket-implement PROJ-123`. It re-verifies the gate, asks you to confirm if a human review was required, implements, and checks the diff before a local commit. Edit the plan only through the agent, then re-run `/sdd-plan-review`.
 5. After shipping, ask Claude to close out the ticket. It verifies merged work, updates `.claude/specs/` and performs the authorized ticket-file/branch cleanup.
 
 ## Safety boundaries

@@ -25,6 +25,14 @@ No database. Skills and project-local handoff files structure the repository.
 - **Format:** Shared version 1 engine in `project-sync-save`; `project-sync-load` launches that same engine.
 - **Scope:** This project’s assistant handoffs, distinct from committed specs and cross-project communication. No automatic commits or remote services.
 
+## Ticket Folder (consuming projects)
+
+- **Storage:** `.claude/tickets/<TICKET>/`, usually untracked, removed by `sdd-ticket-close`.
+- **Planning:** `spec.md`, `plan.md`, `tasks.md` (planner), `planner-risk.json` (planner's trigger answers with evidence and exact `planned_files`), `review.json` (fresh reviewer's verdict, trigger answers and findings).
+- **Gate:** `gate.json`, written only by `gate.py evaluate` and never edited; it binds the decision to hashes of the documents, both declarations, the policy and `triggers.json`, plus the branch and HEAD. Any change makes it stale.
+- **Audit:** `implementation-approval.json`, appended by `sdd-ticket-implement` after a live confirmation. Never reusable as consent.
+- **Policy:** optional `.claude/specs/sdd-gate.json` in the consuming project; absent means automatic implementation is off.
+
 ## Repository Instructions
 
 - **Shared source:** Root `AGENTS.md` contains common authoring, architecture, installation and review rules.
