@@ -20,7 +20,7 @@ Reusable skills for Claude Code, Codex and other assistants with access to proje
 
 | &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Skill&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Use it when |
 |---|---|
-| [`sdd-ticket-start`](skills/claude-ai/development/sdd-ticket-start) | Investigate a ticket against the real codebase, clarify its scope, create a branch, and write `spec.md`, `plan.md` and `tasks.md` before implementation. Uses Claude model/delegation conventions and a Superpowers execution handoff. |
+| [`sdd-ticket-start`](skills/claude-ai/development/sdd-ticket-start) | Investigate a ticket against the real codebase, clarify its scope, create a branch, and write `spec.md`, `plan.md`, `tasks.md` and `planner-risk.json`, then run `sdd-plan-review`'s independent review and gate. Uses Claude model/delegation conventions. |
 | [`sdd-plan-review`](skills/claude-ai/development/sdd-plan-review) | Independently review a ticket's plan with a fresh read-only Opus reviewer (one revision round at most), then run a deterministic gate that decides `AUTO_IMPLEMENT` or `HUMAN_REVIEW`. Runs at the end of `sdd-ticket-start`; re-run it after editing a plan. |
 | [`sdd-ticket-implement`](skills/claude-ai/development/sdd-ticket-implement) | Start implementing a gated ticket in a fresh session: verify the gate is still current, confirm live when it decided `HUMAN_REVIEW`, hand off to `superpowers:executing-plans`, and check the actual diff against the planned files before commit. Never pushes. |
 | [`sdd-ticket-close`](skills/claude-ai/development/sdd-ticket-close) | After a ticket has merged and shipped, verify the actual commits, reconcile the delivered work against its plan, update durable specs and safely clean up ticket files and the local branch. Uses a Claude reconciliation agent. |
@@ -37,7 +37,13 @@ The triggers come in three layers:
 - **Default triggers** can be relaxed by the project with a stated reason: framework core, schema, public contracts, dependencies, global config, integrations, payments/PII.
 - **Project additions:** your own triggers and protected-path globs.
 
-Opt in with `.claude/specs/sdd-gate.json`, starting from the [template](skills/shared/development/sdd-specs-init/assets/sdd-gate.json). Without that file, every plan still gets a human review.
+Opt in with `.claude/specs/sdd-gate.json`, starting from the [template](skills/shared/development/sdd-specs-init/assets/sdd-gate.json). Without that file, every plan still gets a human review. The gate only reads that policy path and only accepts ticket folders at `.claude/tickets/<TICKET-CODE>`, so neither can be swapped for another location.
+
+`gate.py` needs Python 3.9+ (standard library only), and Git to bind a decision to the branch and commit; non-Git projects always get `HUMAN_REVIEW`. Validate gate changes with:
+
+```bash
+python3 -m unittest discover -s skills/claude-ai/development/sdd-plan-review/scripts -p 'test_*.py' -v
+```
 
 These workflows are language- and stack-agnostic, but remain Claude-oriented. Project details such as base branch, dependency tooling and ticket statuses come from `.claude/specs/`; assistant-specific commands and model aliases stay in their skill definitions. There are currently no Codex-only or Copilot-only skills in this repository.
 
@@ -130,7 +136,7 @@ For Claude Code:
 
 Claude Code passes trailing skill arguments through its [documented argument mechanism](https://code.claude.com/docs/en/skills#pass-arguments-to-skills). In Codex or another assistant, invoke or mention the skill with the same directory in your request. Arguments are local directory paths, not web URLs or commands; they must stay within the selected project.
 
-Existing specs and configuration do not change the no-argument default. The current Claude `sdd-ticket-start` and `sdd-ticket-close` skills still read `.claude/specs/`: initialize or update their specs with `/sdd-specs-init .claude/specs`. Files in other specs directories remain in place, and existing files in the selected directory are updated rather than replaced wholesale.
+Existing specs and configuration do not change the no-argument default. The Claude ticket skills (`sdd-ticket-start`, `sdd-plan-review`, `sdd-ticket-implement`, `sdd-ticket-close`) read `.claude/specs/`: initialize or update their specs with `/sdd-specs-init .claude/specs`. Files in other specs directories remain in place, and existing files in the selected directory are updated rather than replaced wholesale.
 
 The [bundled templates](skills/shared/development/sdd-specs-init/assets/specs) contain guidance comments and placeholders. The skill fills them from evidence and user decisions; it records unknowns instead of inventing rules. If working manually, copy the templates to the project's chosen specs directory, fill them in and remove the guidance comments.
 
@@ -142,6 +148,7 @@ The [bundled templates](skills/shared/development/sdd-specs-init/assets/specs) c
 | `branching-strategy.md` | Versioning arrangement, branch roles, prefixes, merge policy and environments |
 | `workflow.md` | Ticket lifecycle and its branch/environment mapping, if the project has one |
 | `mission.md` (optional) | Purpose, audience, scope, success criteria and business constraints |
+| `sdd-gate.json` (optional, `.claude/specs/` only) | Opt-in policy for the plan gate: `auto_implement`, default-trigger relaxations with reasons, extra triggers, protected-path globs. Created only when you ask. |
 
 Specs are team memory and should be tracked when Git is used. The skill checks the selected path against actual ignore rules and proposes any needed change. Git is optional; projects without it can keep local specs and document their sharing arrangement. Installed tooling is used where available, with unavailable evidence reported as unverified. No fixed assistant API or model is needed.
 

@@ -67,8 +67,8 @@ class GateTestCase(unittest.TestCase):
                           'unverified_claims': [], 'summary': 'Reviewed.'})
         (self.folder / name).write_text(json.dumps(value))
 
-    def evaluate(self, policy=POLICY):
-        return gate.evaluate(self.root, TICKET, policy)
+    def evaluate(self):
+        return gate.evaluate(self.root, TICKET)
 
     def assertHuman(self, result, fragment):
         self.assertEqual(result['decision'], 'HUMAN_REVIEW')
@@ -412,6 +412,48 @@ class VerifyDiff(GateTestCase):
     def test_plan_edit_during_implementation_is_stale(self):
         (self.folder / 'plan.md').write_text('# plan.md\nrevised mid-implementation\n')
         self.assertEqual(gate.verify(self.root, TICKET, diff=True)[0], 1)
+
+
+class FixedLocations(GateTestCase):
+    def test_policy_location_cannot_be_chosen_by_caller(self):
+        self.write_policy({'schema': 1, 'auto_implement': False})
+        (self.root / 'notes').mkdir()
+        (self.root / 'notes/my-policy.json').write_text(json.dumps({'schema': 1, 'auto_implement': True}))
+        cli = subprocess.run(['python3', str(SCRIPT), '--project', str(self.root), '--ticket', TICKET, 'evaluate',
+                              '--policy', 'notes/my-policy.json'], capture_output=True, text=True)
+        self.assertNotEqual(cli.returncode, 0)
+        self.assertFalse((self.folder / 'gate.json').exists())
+        self.assertHuman(self.evaluate(), 'does not enable auto_implement')
+
+    def test_gate_recorded_against_another_policy_is_rejected(self):
+        self.evaluate()
+        value = json.loads((self.folder / 'gate.json').read_text())
+        value['policy_path'] = 'notes/my-policy.json'
+        (self.folder / 'gate.json').write_text(json.dumps(value))
+        with self.assertRaisesRegex(gate.GateError, 'evaluated against notes/my-policy.json'):
+            gate.verify(self.root, TICKET)
+
+    def test_symlinked_policy_directory_fails_closed(self):
+        outside = Path(self.temp.name) / 'outside-specs'
+        outside.mkdir()
+        (outside / 'sdd-gate.json').write_text(json.dumps({'schema': 1, 'auto_implement': True}))
+        shutil.rmtree(self.root / '.claude/specs')
+        (self.root / '.claude/specs').symlink_to(outside, target_is_directory=True)
+        self.assertHuman(self.evaluate(), 'symlinked directory')
+
+    def test_ticket_folder_must_be_under_claude_tickets(self):
+        self.write_policy({'schema': 1, 'auto_implement': True, 'path_rules': ['m2-hotfixes/**']})
+        (self.root / 'm2-hotfixes').mkdir()
+        for bad in ('m2-hotfixes', 'src', '.claude/tickets', '.claude/tickets/T-1/nested', '.claude/specs'):
+            with self.assertRaisesRegex(gate.GateError, 'ticket folder'):
+                gate.evaluate(self.root, bad)
+
+    def test_symlinked_tickets_directory_rejected(self):
+        outside = Path(self.temp.name) / 'outside-tickets'
+        shutil.move(str(self.root / '.claude/tickets'), str(outside))
+        (self.root / '.claude/tickets').symlink_to(outside, target_is_directory=True)
+        with self.assertRaisesRegex(gate.GateError, 'symlinked directory'):
+            self.evaluate()
 
 
 class GlobAndApproval(GateTestCase):

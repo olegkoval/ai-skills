@@ -23,7 +23,9 @@ import tempfile
 
 SCHEMA = 1
 TRIGGERS = Path(__file__).resolve().parent.parent / 'assets' / 'triggers.json'
-DEFAULT_POLICY = '.claude/specs/sdd-gate.json'
+POLICY_PATH = '.claude/specs/sdd-gate.json'
+TICKETS_DIR = '.claude/tickets'
+TICKET_NAME = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$')
 DOCS = ('spec.md', 'plan.md', 'tasks.md', 'planner-risk.json', 'review.json')
 VERDICTS = {'APPROVED', 'REQUEST_CHANGES', 'HUMAN_REVIEW_REQUIRED'}
 ANSWERS = {'yes', 'no', 'unknown'}
@@ -233,18 +235,31 @@ def changed_paths(root, base, ticket):
     return sorted(p for p in paths if not under(p, ticket))
 
 
+def fixed_location(root, relative):
+    """root/relative with no symlinked component; the gate never follows a caller-chosen location."""
+    path = root / relative
+    if path.parent.resolve() != root / PurePosixPath(relative).parent:
+        raise GateError(f'{relative} must not be reached through a symlinked directory')
+    return path
+
+
 def ticket_folder(root, ticket):
+    # Fixed location: changes inside the ticket folder are excluded from the diff check, so a
+    # caller must not be able to name some other directory (say, a protected one) as the ticket.
     ticket = relative_path(ticket, 'ticket folder', allow_glob=False)
-    folder = root / ticket
+    parent, _, name = ticket.rpartition('/')
+    if parent != TICKETS_DIR or not TICKET_NAME.match(name):
+        raise GateError(f'ticket folder must be {TICKETS_DIR}/<TICKET-CODE>: {ticket}')
+    folder = fixed_location(root, ticket)
     if folder.is_symlink() or not folder.is_dir():
         raise GateError(f'ticket folder must be a real directory: {ticket}')
     return ticket, folder
 
 
-def input_hashes(root, folder, policy_rel, errors=None):
+def input_hashes(root, folder, errors=None):
     """Hash every gate input. With errors=None an invalid input raises; otherwise it is recorded as None."""
     paths = {name: folder / name for name in DOCS}
-    paths.update({'policy': root / policy_rel, 'triggers': TRIGGERS})
+    paths.update({'policy': root / POLICY_PATH, 'triggers': TRIGGERS})
     hashes = {}
     for name, path in paths.items():
         try:
@@ -271,16 +286,15 @@ def atomic_json(path, value):
             os.unlink(name)
 
 
-def evaluate(root, ticket, policy_rel):
-    gate = compute_gate(root, ticket, policy_rel)
+def evaluate(root, ticket):
+    gate = compute_gate(root, ticket)
     atomic_json(root / gate['ticket_dir'] / 'gate.json', gate)
     return gate
 
 
-def compute_gate(root, ticket, policy_rel):
+def compute_gate(root, ticket):
     """The deterministic gate for the current inputs, without writing anything."""
     ticket, folder = ticket_folder(root, ticket)
-    policy_rel = relative_path(policy_rel, 'policy path', allow_glob=False)
     reasons = []
     review_verdict = None
     try:
@@ -291,9 +305,9 @@ def compute_gate(root, ticket, policy_rel):
     policy = None
     if floor is not None:
         try:
-            policy = load_policy(root / policy_rel, floor, defaults)
+            policy = load_policy(fixed_location(root, POLICY_PATH), floor, defaults)
             if policy is None:
-                reasons.append(f'no project gate policy at {policy_rel}; automatic implementation is not enabled')
+                reasons.append(f'no project gate policy at {POLICY_PATH}; automatic implementation is not enabled')
             elif not policy['auto_implement']:
                 reasons.append('project gate policy does not enable auto_implement')
         except GateError as error:
@@ -354,10 +368,10 @@ def compute_gate(root, ticket, policy_rel):
     except GateError as error:
         repository = None
         reasons.append(str(error))
-    hashes = input_hashes(root, folder, policy_rel, errors=reasons)
+    hashes = input_hashes(root, folder, errors=reasons)
     gate = {'schema': SCHEMA, 'ticket': PurePosixPath(ticket).name, 'ticket_dir': ticket,
             'decision': 'HUMAN_REVIEW' if reasons else 'AUTO_IMPLEMENT', 'review_verdict': review_verdict,
-            'reasons': reasons, 'repository': repository, 'policy_path': policy_rel, 'hashes': hashes,
+            'reasons': reasons, 'repository': repository, 'policy_path': POLICY_PATH, 'hashes': hashes,
             'evaluated_at': now()}
     return gate
 
@@ -375,7 +389,8 @@ def load_gate(root, ticket):
     if not isinstance(gate['hashes'], dict) or not isinstance(gate['reasons'], list) or not (
             repository is None or (isinstance(repository, dict) and set(repository) == {'branch', 'head'})):
         raise GateError('gate.json has malformed hashes, reasons or repository fields')
-    relative_path(gate['policy_path'], 'policy path', allow_glob=False)
+    if gate['policy_path'] != POLICY_PATH:
+        raise GateError(f'gate.json was evaluated against {gate["policy_path"]}, not {POLICY_PATH}; re-run sdd-plan-review')
     return ticket, folder, gate
 
 
@@ -383,11 +398,11 @@ def verify(root, ticket, diff=False):
     """Return (exit_code, result). 0 valid, 1 stale or invalid, 2 human review required (diff mode)."""
     ticket, folder, gate = load_gate(root, ticket)
     stale = [f'{name} changed since evaluation' for name, value in
-             input_hashes(root, folder, gate['policy_path']).items() if gate['hashes'].get(name) != value]
+             input_hashes(root, folder).items() if gate['hashes'].get(name) != value]
     if not stale:
         # gate.json itself is not hashed; re-deriving the decision from the verified inputs means a
         # hand-edited decision, reason or verdict can't pass as an approved gate.
-        fresh = compute_gate(root, ticket, gate['policy_path'])
+        fresh = compute_gate(root, ticket)
         if any(fresh[key] != gate[key] for key in ('decision', 'reasons', 'review_verdict')):
             stale.append('gate.json decision does not match a fresh evaluation of the same inputs')
     result = {'decision': gate['decision'], 'reasons': gate['reasons'],
@@ -431,7 +446,7 @@ def verify(root, ticket, diff=False):
         unusable.append(f'planned files unavailable ({error}); every change is treated as unplanned')
         planned = set()
     try:
-        policy = load_policy(root / gate['policy_path'], *load_triggers())
+        policy = load_policy(fixed_location(root, POLICY_PATH), *load_triggers())
         rules = policy['path_rules'] if policy else []
     except GateError as error:
         unusable.append(f'path rules unavailable ({error}); protected paths cannot be checked')
@@ -469,8 +484,7 @@ def main(argv=None):
     parser.add_argument('--project', required=True, help='Project root (the Git worktree root for Git projects)')
     parser.add_argument('--ticket', required=True, help='Project-relative ticket folder, e.g. .claude/tickets/PROJ-123')
     commands = parser.add_subparsers(dest='command', required=True)
-    evaluate_parser = commands.add_parser('evaluate')
-    evaluate_parser.add_argument('--policy', default=DEFAULT_POLICY, help='Project-relative gate policy path')
+    commands.add_parser('evaluate', help=f'policy is always read from {POLICY_PATH}')
     verify_parser = commands.add_parser('verify')
     verify_parser.add_argument('--diff', action='store_true', help='Pre-commit check of actual changed paths')
     approval_parser = commands.add_parser('record-approval')
@@ -478,7 +492,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     root = Path(args.project).resolve(strict=True)
     if args.command == 'evaluate':
-        result, code = evaluate(root, args.ticket, args.policy), 0
+        result, code = evaluate(root, args.ticket), 0
     elif args.command == 'verify':
         code, result = verify(root, args.ticket, args.diff)
     else:

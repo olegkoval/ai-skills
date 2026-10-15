@@ -57,10 +57,10 @@ Never run a second revision. If the second verdict is not `APPROVED`, the gate d
 
 ```bash
 python3 <this-skill-directory>/scripts/gate.py --project <project-root> \
-  --ticket .claude/tickets/<TICKET-CODE> evaluate --policy .claude/specs/sdd-gate.json
+  --ticket .claude/tickets/<TICKET-CODE> evaluate
 ```
 
-`gate.py` writes `gate.json` and prints it. Report its decision exactly as written; don't reinterpret reasons or decide anything the script didn't. If the script fails to run, the gate is `HUMAN_REVIEW` with the failure as the reason — never treat a missing or failed evaluation as approval.
+The locations are fixed on purpose: `gate.py` only accepts a ticket folder at `.claude/tickets/<TICKET-CODE>` and only reads the policy from `.claude/specs/sdd-gate.json`, neither reached through a symlink. It writes `gate.json` and prints it. Report its decision exactly as written; don't reinterpret reasons or decide anything the script didn't. If the script fails to run, the gate is `HUMAN_REVIEW` with the failure as the reason — never treat a missing or failed evaluation as approval.
 
 ## Step 5 — Decision summary, then stop
 
