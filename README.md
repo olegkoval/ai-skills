@@ -52,6 +52,17 @@ A JSON object with these keys. Any other key, or any invalid value, makes the wh
 | `additional_triggers` | no | Object mapping your own trigger ID to its definition. IDs use lowercase letters, digits and `_`, start with a letter, and can't reuse a canonical ID. The planner and reviewer must answer each one; `yes` or `unknown` forces human review. |
 | `path_rules` | no | Array of protected-path globs, relative to the project root: no leading `/`, no `..`, forward slashes only. `**` matches any number of directories, `*` matches within one directory, `?` matches one character. Patterns are anchored at the root, so use `**/name` to match at any depth. A planned file matching a rule forces human review. At commit time, an unplanned changed file matching a rule stops for your confirmation. |
 
+Minimal recommended policy to enable automatic implementation:
+
+```json
+{
+  "schema": 1,
+  "auto_implement": true
+}
+```
+
+This keeps every floor and default trigger active and adds no path rules, so only plans where nobody flagged any risk, and the reviewer approved, run automatically. Add relaxations, triggers or path rules later as your project needs them.
+
 Example for a Magento project:
 
 ```json
