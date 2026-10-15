@@ -61,6 +61,8 @@ For Git projects, use read-only commands such as `git branch -a`, `git remote -v
 
 A pattern observed in code or a general best practice is not a project rule. Constitution candidates require a source that states or enforces the rule; turn unsupported possibilities into questions instead of Articles.
 
+If reading a file or running a command is denied (a permission, sandbox or policy refusal, not a missing file), record that source as not inspected and turn what it would have shown into a `TBD` or a question. Don't reach the same content by another path, tool or command.
+
 ## Step 3 — Clarify with the user
 
 Present evidence-backed findings for correction without asking the user to re-supply facts already available. Group the real gaps into a manageable round using the host's available question interface, or plain conversation if there is no structured question tool. Adapt to its limits; do not require a named API, a fixed option count or an automatically added "Other" choice.

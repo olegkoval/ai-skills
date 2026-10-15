@@ -45,6 +45,12 @@ There is no package manager or plugin manifest. Install each complete skill fold
 
 The repository contains only canonical skill directories, with no compatibility symlinks. Existing installed links must point directly to `skills/claude-ai/development/<name>` or `skills/shared/development/<name>`. Keep installed names flat and use the canonical paths in documentation. See README.md for installation and migration commands.
 
+## Access boundaries
+
+A permission or policy denial is a boundary, not an obstacle. Denials include a refused tool call, sandbox or filesystem restriction, missing authorization or credentials, workspace trust, MCP/tool policy, network restriction, or hook rejection. When one occurs, you MUST NOT look for another route to the same result: no other tool, path, symlink, shell, interpreter, `sudo`, endpoint, credential source, or settings change. Stop, say what was blocked and what can't continue, and ask the user if a different privileged action is genuinely needed. Ordinary failures (a wrong path, a missing dependency, a failing test) are normal troubleshooting; recover from those as usual.
+
+Actions that mutate external state or create externally visible side effects need the user's explicit approval immediately before running, unless the project's own trusted workflow already authorizes them. That covers pushing, changing or deleting remote branches, publishing, deploying, writing to shared or production databases, sending messages, external API writes, and anything needing elevated privileges. Read-only external investigation, such as fetching docs, listing remote branches or reading an issue, needs no extra approval unless another policy restricts it. Skills restate this only where their workflow actually reaches such a boundary. Real enforcement belongs to the consuming project's permission settings; README.md documents what to configure.
+
 ## Shared code review gate
 
 For code changes, start an independent review of the uncommitted diff in the background before reporting completion or committing. Codex uses `codex review --uncommitted`; Claude Code uses the adapter in `CLAUDE.md`. Use an available equivalent if the preferred reviewer is unavailable; if no reviewer can run, report the unmet gate instead of claiming a clean review.

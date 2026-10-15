@@ -28,7 +28,7 @@ The ticket skills treat a ticket as a claim to verify. Ticket descriptions, vend
 
 These workflows are language- and stack-agnostic, but remain Claude-oriented. Project details such as base branch, dependency tooling and ticket statuses come from `.claude/specs/`; assistant-specific commands and model aliases stay in their skill definitions. There are currently no Codex-only or Copilot-only skills in this repository.
 
-The review installer writes `/codex:review --background`, finding triage, capped re-review rounds and a `/code-review low`/`medium` fallback into `CLAUDE.md`. The Codex plugin is recommended but optional for that workflow. The canonical block lives in [`assets/review-instructions-block.md`](skills/claude-ai/development/review-instructions-install/assets/review-instructions-block.md); edit it and bump its marker version to change the installed instructions.
+The review installer writes `/codex:review --background`, finding triage, capped re-review rounds and a `/code-review low`/`medium` fallback into `CLAUDE.md`. If no reviewer can run, the gate is reported as unmet, never passed. The Codex plugin is recommended but optional for that workflow. The canonical block lives in [`assets/review-instructions-block.md`](skills/claude-ai/development/review-instructions-install/assets/review-instructions-block.md); edit it and bump its marker version to change the installed instructions.
 
 ## Repository layout
 
@@ -155,6 +155,29 @@ This repository's first practical handoff is in local ignored `.ai-sync/`. Start
 3. Review `.claude/tickets/PROJ-123/spec.md` and `plan.md`, including the investigation evidence.
 4. After approval, implement against `plan.md`/`tasks.md` and keep them current when the work changes.
 5. After shipping, ask Claude to close out the ticket. It verifies merged work, updates `.claude/specs/` and performs the authorized ticket-file/branch cleanup.
+
+## Safety boundaries
+
+The skills treat a permission or policy denial as a stopping point, not something to work around. A refused command, a missing credential or a hook rejection is reported to you rather than retried by another route. Actions that change something outside your working tree, such as `git push`, deleting a remote branch, publishing or deploying, wait for your explicit approval; read-only lookups don't. Some skills go further: `sdd-ticket-start` never pushes at all, and asks you to run the push yourself.
+
+Those are instructions, not enforcement. For real enforcement, configure your project's permission rules. For example, in `.claude/settings.json` (shared with the team) or `~/.claude/settings.json` (all your projects):
+
+```json
+{
+  "permissions": {
+    "ask": ["Bash(git push *)", "Bash(git branch -D *)"]
+  }
+}
+```
+
+`ask` and `deny` rules are checked before `allow` and don't need workspace trust ([permissions](https://code.claude.com/docs/en/permissions)). Permission rules match the command string, so an equivalent form like `git -C . push` doesn't match `Bash(git push *)`. Treat them as a strong default, not a sandbox, and add entries for your own deploy and publish commands.
+
+This repository ships no hooks, for three reasons:
+- **Hooks only fail closed on recent versions.** `onFailure: "block"` needs Claude Code v2.1.295 or later. On older versions a hook that crashes or times out lets the action through, and these skills can't know which version your project runs.
+- **A hook defined in a skill stays active for the rest of the session**, so it would also block actions you approve later.
+- **Good validation is project-specific.** A `PreToolUse` hook receives the tool input as structured data, so unlike a permission rule it can parse a command and catch equivalent forms such as `git -C . push`. Its `if` filter is only a best-effort string match, though, so the hook script has to do that validation itself. Writing it well means knowing which commands and environments matter, and a generic skill can't.
+
+If your project wants a hook-based guard, configure it in the project's own settings with `onFailure: "block"`. Treat it as a stronger check than a permission rule, not a complete security boundary.
 
 ## License
 
